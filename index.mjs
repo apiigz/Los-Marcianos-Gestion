@@ -32,6 +32,10 @@ const puerto = process.env.BD_PORT || 3000
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+});
+
 //Todas las rutas que usamos (están todas abiertas, hay que configurar el middleware después para verificar JWT, cookies, y rol)
 app.use('/api/v1/categorias', rutasCategorias)
 app.use('/api/v1/roles', rutasRoles)
