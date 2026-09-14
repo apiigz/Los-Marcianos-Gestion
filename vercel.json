@@ -1,8 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/",
-      "destination": "/frontend/index.html"
-    }
+    { "source": "/", "destination": "/frontend/index.html" },
+    { "source": "/(.*)", "destination": "/frontend/$1" }
   ]
 }
