@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Productos</title>
+  <link rel="stylesheet" href="css/productos.css">
+</head>
+<body>
+  <!-- Encabezado Principal -->
+  <header class="admin-header">
+    <div class="header-left">
+      <span class="close-icon" title="Cerrar panel">&times;</span>
+      <h1 class="header-title">Administrador</h1>
+    </div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <!-- Sidebar de navegación -->
+    <aside class="admin-sidebar">
+      <nav class="sidebar-nav">
+        <a href="usuarios.html" class="nav-item">Usuarios</a>
+        <a href="roles.html" class="nav-item">Roles</a>
+        <a href="sucursales.html" class="nav-item">Sucursales</a>
+        <a href="productos.html" class="nav-item active">Productos</a>
+        <a href="categorias.html" class="nav-item">Categorias</a>
+        <a href="proveedores.html" class="nav-item">Proveedores</a>
+        <a href="stock.html" class="nav-item">Stock por sucursal</a>
+        <a href="turnos.html" class="nav-item">Turnos</a>
+        <a href="ventas-admin.html" class="nav-item">Ventas</a>
+        <a href="estadisticas.html" class="nav-item">Estadisticas</a>
+      </nav>
+    </aside>
+
+    <!-- Área de Trabajo -->
+    <main class="admin-main">
+      <section class="content-card">
+        <div class="table-container">
+          <table class="products-table" id="products-table">
+            <thead>
+              <tr>
+                <th style="width: 4%;">ID</th>
+                <th style="width: 10%;">Cód. Barra</th>
+                <th style="width: 17%;">Descripción</th>
+                <th style="width: 10%;">Categoría</th>
+                <th style="width: 11%;">Proveedor</th>
+                <th style="width: 8%; text-align: right;">P. Costo</th>
+                <th style="width: 8%; text-align: right;">P. Minorista</th>
+                <th style="width: 8%; text-align: right;">P. Mayorista</th>
+                <th style="width: 6%; text-align: center;">IVA</th>
+                <th style="width: 5%; text-align: center;">Activo</th>
+                <th style="width: 5%; text-align: center;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="products-tbody">
+              <!-- Carga dinámica -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Botón inferior derecho -->
+        <div class="table-footer-actions">
+          <button id="btn-add-product" class="btn-primary-green" type="button">
+            + Agregar Producto
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal para Agregar Producto -->
+  <div id="modal-create-product" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-lg">
+      <div class="modal-header">
+        <h2>Crear Nuevo Producto</h2>
+        <button type="button" class="btn-modal-close" id="btn-modal-create-close">&times;</button>
+      </div>
+      <form id="form-create-product">
+        <div class="modal-body form-grid">
+          
+          <div class="form-group">
+            <label for="create-codigo">Código de Barras *</label>
+            <input 
+              type="text" 
+              id="create-codigo" 
+              name="codigo_barra" 
+              required 
+              maxlength="50" 
+              placeholder="Escanee o escriba el código..."
+              autocomplete="off"
+            >
+            <small class="helper-text">Dispara el láser con el cursor aquí.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="create-descripcion">Descripción Comercial *</label>
+            <input 
+              type="text" 
+              id="create-descripcion" 
+              name="descripcion" 
+              required 
+              maxlength="150" 
+              placeholder="Ej: Alfajor Havanna 70% Cacao"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="create-categoria">Categoría *</label>
+            <select id="create-categoria" name="categoria_id" required>
+              <option value="">Seleccionar categoría...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="create-proveedor">Proveedor *</label>
+            <select id="create-proveedor" name="proveedor_id" required>
+              <option value="">Seleccionar proveedor...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="create-costo">Precio Costo ($)</label>
+            <input 
+              type="number" 
+              id="create-costo" 
+              name="precio_costo" 
+              step="0.01" 
+              min="0" 
+              placeholder="0.00"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="create-minorista">Precio Minorista ($) *</label>
+            <input 
+              type="number" 
+              id="create-minorista" 
+              name="precio_minorista" 
+              step="0.01" 
+              min="0" 
+              required 
+              placeholder="0.00"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="create-mayorista">Precio Mayorista ($)</label>
+            <input 
+              type="number" 
+              id="create-mayorista" 
+              name="precio_mayorista" 
+              step="0.01" 
+              min="0" 
+              placeholder="0.00"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="create-iva">Alícuota IVA (%) *</label>
+            <select id="create-iva" name="alicuota_iva" required>
+              <option value="21.00">21.00 % (General)</option>
+              <option value="10.50">10.50 % (Diferencial)</option>
+              <option value="0.00">0.00 % (Exento)</option>
+              <option value="27.00">27.00 %</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width checkbox-wrapper">
+            <input type="checkbox" id="create-activo" name="activo" checked>
+            <label for="create-activo" style="cursor: pointer;">Producto habilitado comercialmente</label>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-create">Cancelar</button>
+          <button type="submit" class="btn-confirm">Guardar Producto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación Estándar -->
+  <div id="modal-confirm" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h3 id="modal-confirm-title">Confirmar acción</h3>
+      </div>
+      <div class="modal-body">
+        <p id="modal-confirm-message">¿Estás seguro de continuar?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-confirm-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="btn-confirm-accept">Sí, continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/productos.js"></script>
+</body>
+</html>

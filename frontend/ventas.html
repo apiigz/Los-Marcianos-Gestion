@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terminal de Ventas</title>
+  <link rel="stylesheet" href="css/ventas.css">
+</head>
+<body>
+
+  <!-- Header Superior Verde -->
+  <header class="pos-header">
+    <div class="header-info">
+      <span class="pos-badge">VENTAS</span>
+      <h1 class="header-title">Panel de Facturación</h1>
+    </div>
+    <div class="header-user">
+      <span id="user-display">Cajero: Cargando...</span>
+      <button type="button" id="btn-cierre-turno-pos" style="background-color: #ef4444; color: white; border: none; font-weight: bold; padding: 0.45rem 0.9rem; border-radius: 6px; cursor: pointer; margin-right: 0.5rem;">CIERRE DE TURNO</button>
+      <button class="btn-exit" onclick="cerrarSesion()">Salir</button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal Expandido -->
+  <div class="pos-container">
+
+    <!-- Buscador / Lector de código de barras -->
+    <div class="scanner-container">
+      <input 
+        type="text" 
+        id="barcode-input" 
+        placeholder="Escanear código o escribir nombre del producto..." 
+        autofocus 
+        autocomplete="off"
+      >
+      <ul id="search-suggestions" class="suggestions-list" hidden></ul>
+    </div>
+
+    <div class="pos-workspace">
+      
+      <!-- Columna Izquierda: Tabla y Medios de Pago -->
+      <div class="workspace-main">
+        
+        <!-- Tabla de Artículos -->
+        <section class="table-container">
+          <table class="pos-table" id="tabla-articulos">
+            <thead>
+              <tr>
+                <th style="width: 45%;">Descripción</th>
+                <th style="width: 15%; text-align: center;">Cantidad</th>
+                <th style="width: 20%; text-align: right;">Precio Unit.</th>
+                <th style="width: 20%; text-align: right;">Total</th>
+                <th style="width: 5%;"></th>
+              </tr>
+            </thead>
+            <tbody id="cart-rows">
+              <!-- Filas insertadas dinámicamente -->
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="text-right"><strong>SUBTOTAL:</strong></td>
+                <td id="cell-subtotal" class="text-right bold">$0.00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </section>
+
+        <!-- Bloque Medios de Pago -->
+        <section class="payment-block">
+          <div class="payment-block-header">
+            <h3>Medios de Pago</h3>
+            <span class="tax-badge">10% de recargo en Débito y Crédito</span>
+          </div>
+
+          <div class="payment-inputs-grid">
+            <div class="pay-input-item">
+              <label for="pay-efectivo">Efectivo</label>
+              <div class="currency-input">
+                <span>$</span>
+                <input type="number" id="pay-efectivo" min="0" step="any" placeholder="0.00">
+              </div>
+            </div>
+
+            <div class="pay-input-item">
+              <label for="pay-debito">Débito (+10%)</label>
+              <div class="currency-input">
+                <span>$</span>
+                <input type="number" id="pay-debito" min="0" step="any" placeholder="0.00">
+              </div>
+            </div>
+
+            <div class="pay-input-item">
+              <label for="pay-credito">Crédito (+10%)</label>
+              <div class="currency-input">
+                <span>$</span>
+                <input type="number" id="pay-credito" min="0" step="any" placeholder="0.00">
+              </div>
+            </div>
+
+            <div class="pay-input-item">
+              <label for="pay-qr">QR / Transferencia</label>
+              <div class="currency-input">
+                <span>$</span>
+                <input type="number" id="pay-qr" min="0" step="any" placeholder="0.00">
+              </div>
+            </div>
+          </div>
+
+          <div id="payment-status-message" class="payment-diff diff-missing">
+            Ingrese los medios de pago para igualar el total.
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Columna Derecha: Totales y Acciones -->
+      <aside class="workspace-sidebar">
+        <div class="total-display-card">
+          <span class="label-total">TOTAL A PAGAR</span>
+          <span class="amount-total" id="label-total-pagar">$0.00</span>
+          <div class="surcharge-notice" id="label-recargo">Recargos: $0.00</div>
+        </div>
+
+        <div class="action-buttons">
+          <button type="button" class="btn-action btn-invoice" id="btn-facturar" disabled>
+            Facturar
+          </button>
+          <button type="button" class="btn-action btn-cancel" id="btn-cancelar">
+            Cancelar
+          </button>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- Modal Apertura de Turno -->
+<div id="modal-apertura-turno" class="modal-overlay" style="position: fixed; inset: 0; background: rgba(15,23,42,0.75); align-items: center; justify-content: center; z-index: 9999; display: none;">
+  <div style="background: white; border-radius: 8px; width: 90%; max-width: 400px; padding: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+    <h3 style="margin-top: 0; color: #0f172a;">Apertura de Caja</h3>
+    <p style="font-size: 0.9rem; color: #64748b;">No hay ningún turno abierto para esta caja. Ingrese el monto de cambio inicial para comenzar a operar.</p>
+    
+    <form id="form-apertura-turno">
+      <div style="margin: 1.25rem 0;">
+        <label for="input-apertura-monto" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem;">Fondo Inicial ($):</label>
+        <input type="number" id="input-apertura-monto" step="0.01" min="0" required placeholder="0.00" style="width: 100%; box-sizing: border-box; font-size: 1.3rem; font-weight: bold; padding: 0.5rem; text-align: right; border: 1px solid #cbd5e1; border-radius: 6px;">
+      </div>
+      <button type="submit" style="width: 100%; background: #0f172a; color: white; border: none; padding: 0.75rem; border-radius: 6px; font-weight: 600; cursor: pointer;">ABRIR TURNO</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Cierre de Turno para el Cajero -->
+<div id="modal-cierre-turno-pos" class="modal-overlay" style="position: fixed; inset: 0; background: rgba(15,23,42,0.75); align-items: center; justify-content: center; z-index: 9999; display: none;">
+  <div style="background: white; border-radius: 8px; width: 90%; max-width: 440px; padding: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0; color: #0f172a;">Cierre de Turno de Caja</h3>
+      <button type="button" id="btn-pos-close-modal-cancel" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8;">&times;</button>
+    </div>
+
+    <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 1rem;">
+      Seleccione el tipo de cierre. En <strong>Cierre Rápido</strong> no necesita ingresar el efectivo; la auditoría la realizará el administrador.
+    </p>
+
+    <div style="margin-bottom: 1.25rem;">
+      <label for="input-pos-monto-real" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem;">Efectivo contado en caja ($):</label>
+      <input type="number" id="input-pos-monto-real" step="0.01" min="0" placeholder="0.00" style="width: 100%; box-sizing: border-box; font-size: 1.3rem; font-weight: bold; padding: 0.5rem; text-align: right; border: 1px solid #cbd5e1; border-radius: 6px;">
+      <small style="color: #64748b; font-size: 0.75rem;">Requerido solo para Cierre de Turno.</small>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+      <button type="button" id="btn-pos-cierre-rapido" style="background: #f59e0b; color: white; border: none; padding: 0.75rem 0.5rem; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer;">
+        CIERRE RÁPIDO
+      </button>
+      <button type="button" id="btn-pos-cierre-definitivo" style="background: #ef4444; color: white; border: none; padding: 0.75rem 0.5rem; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer;">
+        CIERRE DE TURNO
+      </button>
+    </div>
+  </div>
+</div>
+
+  <script src="js/ventas.js"></script>
+</body>
+</html>

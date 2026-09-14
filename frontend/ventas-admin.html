@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Ventas</title>
+  <link rel="stylesheet" href="css/ventas-admin.css">
+</head>
+<body>
+  <!-- Header Principal -->
+  <header class="admin-header">
+    <div class="header-left">
+      <span class="close-icon" title="Cerrar panel">&times;</span>
+      <h1 class="header-title">Administrador</h1>
+    </div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <!-- Sidebar de navegación -->
+    <aside class="admin-sidebar">
+      <nav class="sidebar-nav">
+        <a href="usuarios.html" class="nav-item">Usuarios</a>
+        <a href="roles.html" class="nav-item">Roles</a>
+        <a href="sucursales.html" class="nav-item">Sucursales</a>
+        <a href="productos.html" class="nav-item">Productos</a>
+        <a href="categorias.html" class="nav-item">Categorias</a>
+        <a href="proveedores.html" class="nav-item">Proveedores</a>
+        <a href="stock.html" class="nav-item">Stock por sucursal</a>
+        <a href="turnos.html" class="nav-item">Turnos</a>
+        <a href="ventas-admin.html" class="nav-item active">Ventas</a>
+        <a href="estadisticas.html" class="nav-item">Estadisticas</a>
+      </nav>
+    </aside>
+
+    <!-- Área de Trabajo -->
+    <main class="admin-main">
+      <section class="content-card">
+        
+        <!-- Barra de Filtros Multifunción -->
+        <div class="filters-container">
+          <div class="filters-row">
+            <div class="filter-group">
+              <label for="filter-sucursal">Sucursal</label>
+              <select id="filter-sucursal" class="filter-control">
+                <option value="all">Todas las sucursales</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-empleado">Empleado (Cajero)</label>
+              <select id="filter-empleado" class="filter-control">
+                <option value="all">Todos los empleados</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-medio-pago">Medio de Pago</label>
+              <select id="filter-medio-pago" class="filter-control">
+                <option value="all">Todos los medios</option>
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="DEBITO">Débito</option>
+                <option value="CREDITO">Crédito</option>
+                <option value="MERCADOPAGO">Mercado Pago</option>
+                <option value="TRANSFERENCIA">Transferencia</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>Franja Horaria</label>
+              <div class="pills-container" id="pills-franja">
+                <button type="button" class="pill-btn active" data-franja="ALL">Todos</button>
+                <button type="button" class="pill-btn" data-franja="MAÑANA">Mañana</button>
+                <button type="button" class="pill-btn" data-franja="TARDE">Tarde</button>
+                <button type="button" class="pill-btn" data-franja="NOCHE">Noche</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="filters-row mt-2">
+            <div class="filter-group">
+              <label for="filter-desde">Desde</label>
+              <input type="date" id="filter-desde" class="filter-control">
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-hasta">Hasta</label>
+              <input type="date" id="filter-hasta" class="filter-control">
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-fiscal">Estado ARCA</label>
+              <select id="filter-fiscal" class="filter-control">
+                <option value="all">Todos los comprobantes</option>
+                <option value="CON_CAE">Con Comprobante Fiscal (CAE)</option>
+                <option value="SIN_CAE">Sin Comprobante / Ticket X</option>
+              </select>
+            </div>
+
+            <div class="filter-group filter-actions-bottom">
+              <button type="button" id="btn-limpiar-filtros" class="btn-clean-filters">Limpiar Filtros</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grilla Principal de Ventas con subfilas expandibles -->
+        <div class="table-container">
+          <table class="ventas-table" id="ventas-table">
+            <thead>
+              <tr>
+                <th style="width: 3%; text-align: center;"></th>
+                <th style="width: 5%;">ID</th>
+                <th style="width: 14%;">Fecha y Hora</th>
+                <th style="width: 15%;">Sucursal / Caja</th>
+                <th style="width: 13%;">Empleado</th>
+                <th style="width: 9%;">Turno</th>
+                <th style="width: 12%;">Medio de Pago</th>
+                <th style="width: 15%;">Comprobante ARCA</th>
+                <th style="width: 14%; text-align: right;">Total Venta</th>
+              </tr>
+            </thead>
+            <tbody id="ventas-tbody">
+              <!-- Carga dinámica -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Barra inferior con resumen numérico -->
+        <div class="table-footer-info">
+          <div id="ventas-count-text" class="summary-text">Cargando ventas...</div>
+          <div id="ventas-total-amount" class="total-highlight">Total Facturado: $ 0,00</div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Visor de Comprobante Fiscal (Demo / Auditoría ARCA) -->
+  <div id="modal-comprobante" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-receipt">
+      <div class="modal-header">
+        <h3>Comprobante Fiscal Electrónico</h3>
+        <button type="button" class="btn-modal-close" id="btn-modal-receipt-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="receipt-box">
+          <div class="receipt-header">
+            <div class="receipt-title" id="receipt-tipo-comprobante">FACTURA B</div>
+            <div class="receipt-number" id="receipt-numero">Punto de Venta: 0001 - Comp. Nro: 00000001</div>
+            <div class="receipt-date" id="receipt-fecha">Fecha: 01/01/2026</div>
+          </div>
+          <hr class="receipt-divider">
+          <div class="receipt-body-data">
+            <p><strong>Emisor:</strong> ASIIMOV SOFTWARE S.A.</p>
+            <p><strong>CUIT Emisor:</strong> 30-71829340-4</p>
+            <p><strong>Condición IVA:</strong> IVA Responsable Inscripto</p>
+            <p><strong>Receptor:</strong> <span id="receipt-receptor">Consumidor Final</span></p>
+          </div>
+          <hr class="receipt-divider">
+          <table class="receipt-items-table">
+            <thead>
+              <tr>
+                <th>Cant.</th>
+                <th>Descripción</th>
+                <th style="text-align: right;">P. Unit</th>
+                <th style="text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody id="receipt-items-tbody">
+              <!-- Ítems dinámicos -->
+            </tbody>
+          </table>
+          <hr class="receipt-divider">
+          <div class="receipt-total-row">
+            <span>TOTAL:</span>
+            <strong id="receipt-total">$ 0,00</strong>
+          </div>
+          <hr class="receipt-divider">
+          <div class="receipt-fiscal-footer">
+            <div class="cae-info">
+              <p><strong>CAE N°:</strong> <span id="receipt-cae">74123456789012</span></p>
+              <p><strong>Fecha Vto. CAE:</strong> <span id="receipt-vto-cae">10/01/2026</span></p>
+            </div>
+            <div class="arca-logo-badge">Comprobante Autorizado por ARCA</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-receipt-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/ventas-admin.js"></script>
+</body>
+</html>

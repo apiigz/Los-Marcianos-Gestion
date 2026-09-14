@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Sucursales</title>
+  <link rel="stylesheet" href="css/sucursales.css">
+</head>
+<body>
+  <!-- Encabezado Principal -->
+  <header class="admin-header">
+    <div class="header-left">
+      <span class="close-icon" title="Cerrar panel">&times;</span>
+      <h1 class="header-title">Administrador</h1>
+    </div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <!-- Sidebar de navegación -->
+    <aside class="admin-sidebar">
+      <nav class="sidebar-nav">
+        <a href="usuarios.html" class="nav-item">Usuarios</a>
+        <a href="roles.html" class="nav-item">Roles</a>
+        <a href="sucursales.html" class="nav-item active">Sucursales</a>
+        <a href="productos.html" class="nav-item">Productos</a>
+        <a href="categorias.html" class="nav-item">Categorias</a>
+        <a href="proveedores.html" class="nav-item">Proveedores</a>
+        <a href="stock.html" class="nav-item">Stock por sucursal</a>
+        <a href="turnos.html" class="nav-item">Turnos</a>
+        <a href="ventas-admin.html" class="nav-item">Ventas</a>
+        <a href="estadisticas.html" class="nav-item">Estadisticas</a>
+      </nav>
+    </aside>
+
+    <!-- Área principal -->
+    <main class="admin-main">
+      <section class="content-card">
+        <div class="table-container">
+          <table class="sucursales-table" id="sucursales-table">
+            <thead>
+              <tr>
+                <th style="width: 6%;">ID</th>
+                <th style="width: 25%;">Nombre</th>
+                <th style="width: 33%;">Dirección</th>
+                <th style="width: 14%; text-align: center;">Pto. Venta ARCA</th>
+                <th style="width: 14%; text-align: center;">Depósito Central</th>
+                <th style="width: 8%; text-align: center;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="sucursales-tbody">
+              <!-- Carga dinámica -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Botón inferior derecho -->
+        <div class="table-footer-actions">
+          <button id="btn-add-sucursal" class="btn-primary-green" type="button">
+            + Agregar Sucursal
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Crear Sucursal -->
+  <div id="modal-create-sucursal" class="modal-overlay" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2>Crear Nueva Sucursal</h2>
+        <button type="button" class="btn-modal-close" id="btn-modal-create-close">&times;</button>
+      </div>
+      <form id="form-create-sucursal">
+        <div class="modal-body form-grid">
+          <div class="form-group full-width">
+            <label for="create-nombre">Nombre de la Sucursal *</label>
+            <input type="text" id="create-nombre" name="nombre" required maxlength="80" placeholder="Ej: Sucursal Centro">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="create-direccion">Dirección *</label>
+            <input type="text" id="create-direccion" name="direccion" required maxlength="120" placeholder="Ej: Av. Colón 1234">
+          </div>
+
+          <div class="form-group">
+            <label for="create-pto-arca">Punto de Venta ARCA *</label>
+            <input type="number" id="create-pto-arca" name="punto_de_venta_arca" required min="1" max="99999" placeholder="Ej: 1">
+            <small class="helper-text">Número oficial de terminal fiscal AFIP/ARCA.</small>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label for="create-es-deposito">¿Es Depósito Central?</label>
+            <div class="checkbox-wrapper">
+              <input type="checkbox" id="create-es-deposito" name="es_deposito_central">
+              <span class="helper-text">Si se activa, reemplazará al depósito central actual.</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-create">Cancelar</button>
+          <button type="submit" class="btn-confirm">Guardar Sucursal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Reasignar Depósito Central Obligatorio -->
+  <div id="modal-transfer-deposito" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h3>Reasignar Depósito Central</h3>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">El sistema requiere que <strong>al menos una sucursal</strong> sea el depósito central.</p>
+        <p class="mb-3 text-muted">Selecciona qué sucursal asumirá el rol de depósito principal:</p>
+        <div class="form-group">
+          <label for="select-nuevo-deposito">Nuevo Depósito Central *</label>
+          <select id="select-nuevo-deposito" class="table-input">
+            <!-- Rellenado dinámico con las otras sucursales -->
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-cancel-transfer">Volver</button>
+        <button type="button" class="btn-confirm" id="btn-confirm-transfer">Transferir y Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación Genérico -->
+  <div id="modal-confirm" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h3 id="modal-confirm-title">Confirmar acción</h3>
+      </div>
+      <div class="modal-body">
+        <p id="modal-confirm-message">¿Estás seguro de continuar?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-confirm-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="btn-confirm-accept">Sí, continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/sucursales.js"></script>
+</body>
+</html>

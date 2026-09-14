@@ -1,0 +1,1 @@
+//Mostrar en pantalla las categorías. Aún no diseñamos cómo.

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Stock por Sucursal</title>
+  <link rel="stylesheet" href="css/stock.css">
+</head>
+<body>
+  <!-- Header Principal -->
+  <header class="admin-header">
+    <div class="header-left">
+      <span class="close-icon" title="Cerrar panel">&times;</span>
+      <h1 class="header-title">Administrador</h1>
+    </div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <!-- Sidebar de navegación -->
+    <aside class="admin-sidebar">
+      <nav class="sidebar-nav">
+        <a href="usuarios.html" class="nav-item">Usuarios</a>
+        <a href="roles.html" class="nav-item">Roles</a>
+        <a href="sucursales.html" class="nav-item">Sucursales</a>
+        <a href="productos.html" class="nav-item">Productos</a>
+        <a href="categorias.html" class="nav-item">Categorias</a>
+        <a href="proveedores.html" class="nav-item">Proveedores</a>
+        <a href="stock.html" class="nav-item active">Stock por sucursal</a>
+        <a href="turnos.html" class="nav-item">Turnos</a>
+        <a href="ventas-admin.html" class="nav-item">Ventas</a>
+        <a href="estadisticas.html" class="nav-item">Estadisticas</a>
+      </nav>
+    </aside>
+
+    <!-- Área principal -->
+    <main class="admin-main">
+      <section class="content-card">
+        
+        <!-- Barra superior de control y selección de contexto -->
+        <div class="stock-controls-header">
+          <div class="branch-tabs-container" id="branch-tabs">
+            <!-- Pestañas de sucursales generadas dinámicamente -->
+            <button type="button" class="tab-pill active" data-id="all">Todas las sucursales</button>
+          </div>
+
+          <div class="search-box-wrapper">
+            <input 
+              type="text" 
+              id="input-search-stock" 
+              class="search-input" 
+              placeholder="Escanear código o buscar producto..." 
+              autocomplete="off"
+            >
+          </div>
+        </div>
+
+        <!-- Contenedor de la Grilla -->
+        <div class="table-container">
+          <table class="stock-table" id="stock-table">
+            <thead>
+              <tr id="stock-thead-tr">
+                <th style="width: 5%;">ID</th>
+                <th style="width: 15%;">Sucursal</th>
+                <th style="width: 15%;">Cód. Barra</th>
+                <th style="width: 30%;">Producto</th>
+                <th style="width: 12%; text-align: right;">Cantidad Disp.</th>
+                <th style="width: 11%; text-align: right;">Stock Mínimo</th>
+                <th style="width: 7%; text-align: center;">Estado</th>
+                <th style="width: 5%; text-align: center;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="stock-tbody">
+              <!-- Carga dinámica -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Barra inferior informativa -->
+        <div class="table-footer-info">
+          <div class="legend-container">
+            <span class="legend-item"><span class="status-indicator status-ok"></span> Normal</span>
+            <span class="legend-item"><span class="status-indicator status-warning"></span> Stock Bajo</span>
+            <span class="legend-item"><span class="status-indicator status-critical"></span> Agotado</span>
+          </div>
+          <div id="stock-summary-text" class="summary-text">Cargando existencias...</div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Confirmación Genérico -->
+  <div id="modal-confirm" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h3 id="modal-confirm-title">Confirmar ajuste de stock</h3>
+      </div>
+      <div class="modal-body">
+        <p id="modal-confirm-message">¿Estás seguro de registrar este cambio de inventario?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-confirm-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="btn-confirm-accept">Sí, confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/stock.js"></script>
+</body>
+</html>

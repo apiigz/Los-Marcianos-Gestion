@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Usuarios</title>
+  <link rel="stylesheet" href="css/usuarios.css">
+</head>
+<body>
+  <!-- Encabezado Principal -->
+  <header class="admin-header">
+    <div class="header-left">
+      <span class="close-icon" title="Cerrar panel">&times;</span>
+      <h1 class="header-title">Administrador</h1>
+    </div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <!-- Sidebar de navegación -->
+    <aside class="admin-sidebar">
+      <nav class="sidebar-nav">
+        <a href="usuarios.html" class="nav-item active">Usuarios</a>
+        <a href="roles.html" class="nav-item">Roles</a>
+        <a href="sucursales.html" class="nav-item">Sucursales</a>
+        <a href="productos.html" class="nav-item">Productos</a>
+        <a href="categorias.html" class="nav-item">Categorias</a>
+        <a href="proveedores.html" class="nav-item">Proveedores</a>
+        <a href="stock.html" class="nav-item">Stock por sucursal</a>
+        <a href="turnos.html" class="nav-item">Turnos</a>
+        <a href="ventas-admin.html" class="nav-item">Ventas</a>
+        <a href="estadisticas.html" class="nav-item">Estadisticas</a>
+      </nav>
+    </aside>
+
+    <!-- Área principal de trabajo -->
+    <main class="admin-main">
+      <section class="content-card">
+        <div class="table-container">
+          <table class="users-table" id="users-table">
+            <thead>
+              <tr>
+                <th style="width: 5%;">ID</th>
+                <th style="width: 12%;">Rol</th>
+                <th style="width: 14%;">Nombre</th>
+                <th style="width: 14%;">Apellido</th>
+                <th style="width: 10%;">DNI</th>
+                <th style="width: 11%;">CUIL</th>
+                <th style="width: 16%;">Email</th>
+                <th style="width: 10%;">Contraseña</th>
+                <th style="width: 4%; text-align: center;">Activo</th>
+                <th style="width: 4%; text-align: center;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <!-- Se puebla dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Barra de acciones inferior -->
+        <div class="table-footer-actions">
+          <button id="btn-add-user" class="btn-primary-green" type="button">
+            + Agregar Usuario
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal para Agregar Usuario -->
+  <div id="modal-create-user" class="modal-overlay" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2>Crear Nuevo Usuario</h2>
+        <button type="button" class="btn-modal-close" id="btn-modal-create-close">&times;</button>
+      </div>
+      <form id="form-create-user">
+        <div class="modal-body form-grid">
+          <div class="form-group">
+            <label for="create-rol">Rol *</label>
+            <select id="create-rol" name="rol_id" required>
+              <option value="">Seleccione un rol...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="create-dni">DNI *</label>
+            <input type="text" id="create-dni" name="dni" required maxlength="12">
+          </div>
+
+          <div class="form-group">
+            <label for="create-nombre">Nombre *</label>
+            <input type="text" id="create-nombre" name="nombre" required maxlength="60">
+          </div>
+
+          <div class="form-group">
+            <label for="create-apellido">Apellido *</label>
+            <input type="text" id="create-apellido" name="apellido" required maxlength="60">
+          </div>
+
+          <div class="form-group">
+            <label for="create-cuil">CUIL</label>
+            <input type="text" id="create-cuil" name="cuil" maxlength="14" placeholder="Opcional">
+          </div>
+
+          <div class="form-group">
+            <label for="create-email">Email</label>
+            <input type="email" id="create-email" name="email" maxlength="100" placeholder="usuario@comercio.com">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="create-password">Contraseña Provisional *</label>
+            <div class="input-with-action">
+              <input type="text" id="create-password" name="password" required placeholder="Ej. últimos 4 dígitos">
+              <button type="button" id="btn-gen-pass" class="btn-secondary-action">Generar 4 dígitos</button>
+            </div>
+            <small class="helper-text">Esta contraseña se guardará cifrada y se la informarás al empleado.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-create">Cancelar</button>
+          <button type="submit" class="btn-confirm">Guardar Usuario</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación Genérico (Modificar / Desactivar) -->
+  <div id="modal-confirm" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h3 id="modal-confirm-title">Confirmar acción</h3>
+      </div>
+      <div class="modal-body">
+        <p id="modal-confirm-message">¿Estás seguro de continuar?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-confirm-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="btn-confirm-accept">Sí, continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/usuarios.js"></script>
+</body>
+</html>

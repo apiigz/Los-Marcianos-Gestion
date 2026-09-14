@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar sesión</title>
+  <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+  <main class="login-container">
+    <h1 class="login-title">Iniciar sesión</h1>
+
+    <form class="login-form">
+      <div class="input-group">
+        <input 
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]*" 
+          maxlength="8"
+          id="dni" 
+          placeholder="DNI" 
+          required 
+          autocomplete="username"
+        >
+      </div>
+
+      <div class="input-group">
+        <input 
+          type="password" 
+          id="password" 
+          placeholder="Contraseña" 
+          required 
+          autocomplete="current-password"
+        >
+      </div>
+
+      <div class="forgot-password">
+        <a href="#">¿Olvidaste tu contraseña?</a>
+      </div>
+
+      <button type="submit" class="btn-submit">Iniciar sesión</button>
+    </form>
+  </main>
+<script src="js/index.js"></script>
+</body>
+</html>

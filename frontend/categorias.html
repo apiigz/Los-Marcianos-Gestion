@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Categorías</title>
+  <link rel="stylesheet" href="css/categorias.css">
+</head>
+<body>
+  <!-- Encabezado Principal -->
+  <header class="admin-header">
+    <div class="header-left">
+      <span class="close-icon" title="Cerrar panel">&times;</span>
+      <h1 class="header-title">Administrador</h1>
+    </div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <!-- Sidebar de navegación -->
+    <aside class="admin-sidebar">
+      <nav class="sidebar-nav">
+        <a href="usuarios.html" class="nav-item">Usuarios</a>
+        <a href="roles.html" class="nav-item">Roles</a>
+        <a href="sucursales.html" class="nav-item">Sucursales</a>
+        <a href="productos.html" class="nav-item">Productos</a>
+        <a href="categorias.html" class="nav-item active">Categorias</a>
+        <a href="proveedores.html" class="nav-item">Proveedores</a>
+        <a href="stock.html" class="nav-item">Stock por sucursal</a>
+        <a href="turnos.html" class="nav-item">Turnos</a>
+        <a href="ventas-admin.html" class="nav-item">Ventas</a>
+        <a href="estadisticas.html" class="nav-item">Estadisticas</a>
+      </nav>
+    </aside>
+
+    <!-- Área principal -->
+    <main class="admin-main">
+      <section class="content-card">
+        <div class="table-container">
+          <table class="categorias-table" id="categorias-table">
+            <thead>
+              <tr>
+                <th style="width: 15%;">ID</th>
+                <th style="width: 70%;">Nombre de la Categoría</th>
+                <th style="width: 25%;">Unidad de Medida</th>
+                <th style="width: 15%; text-align: center;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="categorias-tbody">
+              <!-- Carga dinámica -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Barra inferior de acción -->
+        <div class="table-footer-actions">
+          <button id="btn-add-categoria" class="btn-primary-green" type="button">
+            + Agregar Categoría
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Crear Categoría -->
+  <div id="modal-create-categoria" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h2>Crear Nueva Categoría</h2>
+        <button type="button" class="btn-modal-close" id="btn-modal-create-close">&times;</button>
+      </div>
+      <form id="form-create-categoria">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="create-nombre">Nombre de la Categoría *</label>
+            <input 
+              type="text" 
+              id="create-nombre" 
+              name="nombre" 
+              required 
+              maxlength="50" 
+              placeholder="Ej: Golosinas, Bebidas, Cigarrillos..." 
+              autocomplete="off"
+            >
+          </div>
+          <div class="form-group">
+          <label for="create-unidad-medida">Unidad de Medida *</label>
+          <select id="create-unidad-medida" class="form-control">
+            <option value="UNIDAD" selected>Por Unidad (u.)</option>
+            <option value="KILO">Por Peso / Fraccionable (KILO)</option>
+          </select>
+        </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-create">Cancelar</button>
+          <button type="submit" class="btn-confirm">Guardar Categoría</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación Genérico -->
+  <div id="modal-confirm" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h3 id="modal-confirm-title">Confirmar acción</h3>
+      </div>
+      <div class="modal-body">
+        <p id="modal-confirm-message">¿Estás seguro de continuar?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-confirm-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="btn-confirm-accept">Sí, continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/categorias.js"></script>
+</body>
+</html>

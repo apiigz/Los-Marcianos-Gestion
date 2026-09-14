@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Administrador</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- Input oculto para controlar la apertura del menú con CSS -->
+  <input type="checkbox" id="menu-toggle" class="menu-toggle">
+
+  <div class="admin-wrapper">
+    
+    <!-- Header superior para dar contraste al fondo blanco -->
+    <header class="admin-header">
+      <div class="header-left">
+        <!-- Ícono hamburguesa clickeable -->
+        <label for="menu-toggle" class="hamburger-btn" title="Menú">
+          <span></span>
+          <span></span>
+          <span></span>
+        </label>
+        <span class="user-role-title">Administrador</span>
+      </div>
+
+      <div class="header-right">
+        <span id="user-name" class="user-display">Facundo Sarmiento</span>
+        <button class="btn-logout" onclick="cerrarSesion()">Cerrar sesión</button>
+      </div>
+    </header>
+
+    <div class="admin-body">
+      <!-- Barra lateral que se despliega al presionar el menú -->
+      <aside class="admin-sidebar">
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-btn">Usuarios</a>
+          <a href="#" class="nav-btn">Roles</a>
+          <a href="#" class="nav-btn">Sucursales</a>
+          <a href="#" class="nav-btn">Productos</a>
+          <a href="#" class="nav-btn">Categorias</a>
+          <a href="#" class="nav-btn">Proveedores</a>
+          <a href="#" class="nav-btn">Stock por sucursal</a>
+          <a href="#" class="nav-btn">Turnos</a>
+          <a href="#" class="nav-btn">Ventas</a>
+          <a href="#" class="nav-btn nav-link-text">Estadisticas</a>
+        </nav>
+      </aside>
+
+      <!-- Contenedor principal de contenidos / vista -->
+      <main class="admin-content">
+        <div class="content-placeholder">
+          <!-- Aquí se cargarán dinámicamente las tablas o componentes -->
+        </div>
+      </main>
+    </div>
+
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

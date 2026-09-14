@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Turnos</title>
+  <link rel="stylesheet" href="css/turnos.css">
+</head>
+<body>
+  <!-- Encabezado Principal -->
+  <header class="admin-header">
+    <div class="header-left">
+      <span class="close-icon" title="Cerrar panel">&times;</span>
+      <h1 class="header-title">Administrador</h1>
+    </div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <!-- Sidebar de navegación -->
+    <aside class="admin-sidebar">
+      <nav class="sidebar-nav">
+        <a href="usuarios.html" class="nav-item">Usuarios</a>
+        <a href="roles.html" class="nav-item">Roles</a>
+        <a href="sucursales.html" class="nav-item">Sucursales</a>
+        <a href="productos.html" class="nav-item">Productos</a>
+        <a href="categorias.html" class="nav-item">Categorias</a>
+        <a href="proveedores.html" class="nav-item">Proveedores</a>
+        <a href="stock.html" class="nav-item">Stock por sucursal</a>
+        <a href="turnos.html" class="nav-item active">Turnos</a>
+        <a href="ventas-admin.html" class="nav-item">Ventas</a>
+        <a href="estadisticas.html" class="nav-item">Estadisticas</a>
+      </nav>
+    </aside>
+
+    <!-- Área de Trabajo Principal -->
+    <main class="admin-main">
+      <section class="content-card">
+        
+        <!-- Barra superior de filtros -->
+        <div class="filters-bar">
+          <div class="filter-group">
+            <label for="filter-sucursal">Sucursal</label>
+            <select id="filter-sucursal" class="filter-select">
+              <option value="all">Todas las sucursales</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Franja Horaria</label>
+            <div class="tabs-pills-container" id="franja-pills">
+              <button type="button" class="pill-btn active" data-franja="ALL">Todos</button>
+              <button type="button" class="pill-btn" data-franja="MAÑANA">Mañana</button>
+              <button type="button" class="pill-btn" data-franja="TARDE">Tarde</button>
+              <button type="button" class="pill-btn" data-franja="NOCHE">Noche</button>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-fecha">Fecha</label>
+            <input type="date" id="filter-fecha" class="filter-input-date">
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-estado">Estado</label>
+            <select id="filter-estado" class="filter-select">
+              <option value="ALL">Todos los estados</option>
+              <option value="ABIERTO">Abiertos</option>
+              <option value="EN_CIERRE">En Cierre (Cierre Rápido)</option>
+              <option value="CERRADO">Cerrados y Auditados</option>
+            </select>
+          </div>
+
+          <div class="filter-actions">
+            <button type="button" id="btn-limpiar-filtros" class="btn-clean-filters">Limpiar</button>
+          </div>
+        </div>
+
+        <!-- Contenedor de la Grilla -->
+        <div class="table-container">
+          <table class="turnos-table" id="turnos-table">
+            <thead>
+              <tr>
+                <th style="width: 4%;">ID</th>
+                <th style="width: 14%;">Caja / Sucursal</th>
+                <th style="width: 8%;">Turno</th>
+                <th style="width: 13%;">Apertura</th>
+                <th style="width: 13%;">Cierre</th>
+                <th style="width: 9%; text-align: right;">Monto Inicial</th>
+                <th style="width: 10%; text-align: right;">Esp. Efectivo</th>
+                <th style="width: 7%; text-align: right;">Esp. Débito</th>
+                <th style="width: 7%; text-align: right;">Esp. Crédito</th>
+                <th style="width: 7%; text-align: right;">Esp. QR</th>
+                <th style="width: 10%; text-align: right;">Arqueo Real</th>
+                <th style="width: 9%; text-align: right;">Diferencia</th>
+                <th style="width: 6%; text-align: center;">Estado</th>
+                <th style="width: 4%; text-align: center;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="turnos-tbody">
+              <!-- Carga dinámica -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Barra inferior de resumen -->
+        <div class="table-footer-info">
+          <div class="legend-container">
+            <span class="legend-item"><span class="badge badge-abierto">ABIERTO</span> Turno en curso</span>
+            <span class="legend-item"><span class="badge badge-en-cierre">EN_CIERRE</span> Pendiente arqueo manual</span>
+            <span class="legend-item"><span class="badge badge-cerrado">CERRADO</span> Auditado y cerrado</span>
+          </div>
+          <div id="turnos-summary-text" class="summary-text">Cargando turnos...</div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal para Declarar Arqueo (Cierre Definitivo) -->
+  <div id="modal-declarar-arqueo" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h2>Declarar Arqueo de Turno</h2>
+        <button type="button" class="btn-modal-close" id="btn-modal-arqueo-close">&times;</button>
+      </div>
+      <form id="form-declarar-arqueo">
+        <div class="modal-body">
+          <div class="turno-meta-summary">
+            <p><strong>Turno ID:</strong> <span id="modal-arqueo-turno-id">-</span></p>
+            <p><strong>Caja:</strong> <span id="modal-arqueo-caja">-</span></p>
+            <p><strong>Efectivo Esperado (Cajón):</strong> <span id="modal-arqueo-esperado" class="currency-highlight">$ 0,00</span></p>
+          </div>
+
+          <!-- Resumen Informativo de Medios Electrónicos -->
+          <div class="digital-payments-card mt-3">
+            <span class="digital-payments-title">Ventas Electrónicas (Control de Comprobantes)</span>
+            <div class="digital-payments-grid">
+              <div class="digital-box">
+                <span class="digital-label">Débito</span>
+                <strong id="modal-arqueo-debito">$ 0,00</strong>
+              </div>
+              <div class="digital-box">
+                <span class="digital-label">Crédito</span>
+                <strong id="modal-arqueo-credito">$ 0,00</strong>
+              </div>
+              <div class="digital-box">
+                <span class="digital-label">QR / Transf.</span>
+                <strong id="modal-arqueo-qr">$ 0,00</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group mt-3">
+            <label for="input-arqueo-real">Efectivo Real Contado en Cajón / Sobre ($) *</label>
+            <input 
+              type="number" 
+              id="input-arqueo-real" 
+              step="0.01" 
+              min="0" 
+              required 
+              placeholder="0.00"
+              autocomplete="off"
+            >
+            <small class="helper-text">Ingrese el total del recuento físico de billetes y monedas.</small>
+          </div>
+
+          <div class="diff-preview-box mt-3" id="diff-preview-box">
+            <span>Diferencia calculada:</span>
+            <strong id="modal-arqueo-diferencia">$ 0,00</strong>
+          </div>
+
+          <div class="form-group mt-3">
+            <label for="input-arqueo-observaciones">Observaciones (opcional)</label>
+            <textarea 
+              id="input-arqueo-observaciones" 
+              rows="2" 
+              class="table-input" 
+              style="width: 100%; box-sizing: border-box; resize: none;" 
+              placeholder="Ej: Retiro para reposición o ajuste de cambio."
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-arqueo">Cancelar</button>
+          <button type="submit" class="btn-confirm">Cerrar y Auditar Turno</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Confirmación Genérico -->
+  <div id="modal-confirm" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h3 id="modal-confirm-title">Confirmar acción</h3>
+      </div>
+      <div class="modal-body">
+        <p id="modal-confirm-message">¿Estás seguro de continuar?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-confirm-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="btn-confirm-accept">Sí, confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/turnos.js"></script>
+</body>
+</html>
