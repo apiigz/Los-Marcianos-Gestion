@@ -16,27 +16,24 @@ import rutasProveedores from './modulos/principales/proveedores/rutas.proveedore
 import rutasSucursales from './modulos/principales/sucursales/rutas.sucursales.mjs'
 import rutasStockSucursales from './modulos/productos/stock_sucursal/rutas.stock_sucursal.mjs'
 import rutasTurnos from './modulos/turnos/turno_caja/rutas.turno_caja.mjs'
-import rutasVentas from './modulos/ventas/venta/rutas.venta.mjs'
 
 const app = express()
-
 dotenv.config()
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.use(express.json())
-app.use(express.static(path.join(__dirname, 'frontend')));
+app.use(express.static(path.join(__dirname, 'frontend'))); 
 app.use(cookieParser(process.env.COOKIE_SECRET))
 app.use(express.urlencoded({ extended: true }));
 
 const puerto = process.env.BD_PORT || 3000
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
-//Todas las rutas que usamos (están todas abiertas, hay que configurar el middleware después para verificar JWT, cookies, y rol)
 app.use('/api/v1/categorias', rutasCategorias)
 app.use('/api/v1/roles', rutasRoles)
 app.use('/api/v1/usuarios', rutasUsuarios)
@@ -54,3 +51,5 @@ app.use('/api/v1/ventas', rutasVenta)
 app.listen(puerto, () => {
   console.log(`Servidor escuchando en el puerto ${puerto}`)
 })
+
+export default app;
