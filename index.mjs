@@ -23,7 +23,7 @@ const app = express()
 dotenv.config()
 
 app.use(express.json())
-app.use(express.static('frontend'))
+app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(cookieParser(process.env.COOKIE_SECRET))
 app.use(express.urlencoded({ extended: true }));
 
