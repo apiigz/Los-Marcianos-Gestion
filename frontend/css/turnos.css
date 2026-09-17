@@ -725,3 +725,30 @@ body {
   color: #000000;
   border-color: var(--color-edit);
 }
+
+/* ======================================================= */
+/* ESTILOS DE DIFERENCIA DE ARQUEO                         */
+/* ======================================================= */
+
+.diff-negative {
+  color: #f87171 !important; /* Rojo suave / Crítico */
+  font-weight: 700;
+}
+
+.diff-positive {
+  color: #34d399 !important; /* Verde menta */
+  font-weight: 700;
+}
+
+.diff-zero {
+  color: var(--text-muted, #a1a1aa) !important;
+  font-weight: 500;
+}
+
+.diff-neutral {
+  color: var(--text-subtle, #71717a);
+}
+
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
