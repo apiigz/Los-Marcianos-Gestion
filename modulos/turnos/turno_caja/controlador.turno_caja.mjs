@@ -1,18 +1,18 @@
 import * as modelo from './modelo.turno_caja.mjs';
 
 // Función auxiliar para determinar el turno según la hora de Argentina (GMT-3)
-function calcularTurnoSegunHora(fecha = new Date()) {
+function calcularTurnoSegunHora() {
   const hora = parseInt(
     new Intl.DateTimeFormat('es-AR', {
       hour: 'numeric',
       hour12: false,
       timeZone: 'America/Argentina/Cordoba'
-    }).format(fecha),
+    }).format(new Date()),
     10
   );
 
-  if (hora >= 6 && hora < 13) return 'MAÑANA';
-  if (hora >= 13 && hora < 20) return 'TARDE';
+  if (hora >= 6 && hora < 14) return 'MAÑANA';
+  if (hora >= 14 && hora < 22) return 'TARDE';
   return 'NOCHE';
 }
 
@@ -209,6 +209,12 @@ export async function abrirTurno(req, res) {
       return res.status(400).json({ 
         error: 'caja_fisica_id y monto_inicial_efectivo son obligatorios.' 
       });
+    }
+
+    if (typeof nombre_turno !== 'string' || !nombre_turno.trim() || nombre_turno === '{}') {
+      nombre_turno = calcularTurnoSegunHora();
+    } else {
+      nombre_turno = nombre_turno.trim().toUpperCase();
     }
 
     // Regla de negocio: No permitir abrir un turno si la caja ya tiene uno ABIERTO o EN_CIERRE

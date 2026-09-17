@@ -51,8 +51,6 @@ export async function obtenerEstadoCajasTurnos() {
       tc.diferencia,
       cf.nombre AS caja_nombre,
       s.nombre AS sucursal_nombre,
-      -- Concatenación de cajeros asignados (Apertura + Segundo Cajero) 
-      -- combinados con quienes hayan registrado ventas en el turno:
       COALESCE(
         (
           SELECT STRING_AGG(DISTINCT (u.nombre || ' ' || u.apellido), ' / ')
@@ -64,31 +62,21 @@ export async function obtenerEstadoCajasTurnos() {
           )
         ),
         (
-          -- Fallback si es un turno previo a esta migración:
           SELECT STRING_AGG(DISTINCT (u.nombre || ' ' || u.apellido), ' / ')
           FROM venta v
           JOIN usuario u ON v.usuario_id = u.id
           WHERE v.turno_caja_id = tc.id
         ),
         'Sin cajeros asignados'
-      ) AS cajero_nombre,
-      -- Quién ejecutó el cierre si ya está cerrado/en arqueo:
-      u_cierre.nombre || ' ' || u_cierre.apellido AS cerrado_por
+      ) AS cajero_nombre
     FROM turno_caja tc
     JOIN caja_fisica cf ON tc.caja_fisica_id = cf.id
     JOIN sucursal s ON cf.sucursal_id = s.id
-    LEFT JOIN usuario u_cierre ON tc.usuario_cierre_id = u_cierre.id
     WHERE tc.estado::text IN ('ABIERTO', 'EN_CIERRE')
-       OR (
-         tc.estado::text = 'CERRADO' 
-         AND tc.fecha_cierre >= NOW() - INTERVAL '24 hours' 
-         AND tc.diferencia < 0
-       )
     ORDER BY 
       CASE tc.estado::text 
         WHEN 'EN_CIERRE' THEN 1 
         WHEN 'ABIERTO' THEN 2 
-        ELSE 3 
       END,
       tc.fecha_apertura DESC;
   `;
