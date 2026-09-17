@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Estadísticas - Administrador</title>
+  <link rel="stylesheet" href="css/estadisticas.css">
+</head>
+<body>
+
+  <div class="admin-layout">
+    
+    <!-- Barra lateral de navegación -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Administrador</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="usuarios.html">Usuarios</a>
+        <a href="roles.html">Roles</a>
+        <a href="sucursales.html">Sucursales</a>
+        <a href="productos.html">Productos</a>
+        <a href="categorias.html">Categorías</a>
+        <a href="proveedores.html">Proveedores</a>
+        <a href="stock.html">Stock por sucursal</a>
+        <a href="turnos.html">Turnos</a>
+        <a href="ventas-admin.html">Ventas</a>
+        <a href="estadisticas.html" class="active">Estadísticas</a>
+      </nav>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+      
+      <header class="topbar">
+        <div class="filter-group">
+          <label for="filtro-rango">Período:</label>
+          <select id="filtro-rango">
+            <option value="hoy">Hoy</option>
+            <option value="7dias" selected>Últimos 7 días</option>
+            <option value="30dias">Últimos 30 días</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+
+          <div id="contenedor-fechas-custom" class="hidden">
+            <input type="date" id="fecha-desde">
+            <span>hasta</span>
+            <input type="date" id="fecha-hasta">
+          </div>
+
+          <button type="button" id="btn-filtrar" class="btn-primary">Filtrar</button>
+        </div>
+
+        <div class="user-action">
+          <span id="admin-user-display">Admin</span>
+          <button type="button" onclick="cerrarSesion()" class="btn-logout">Cerrar sesión</button>
+        </div>
+      </header>
+
+      <section class="dashboard-body">
+        
+        <!-- Tarjetas KPI -->
+        <div class="kpis-grid">
+          <div class="kpi-card">
+            <span class="kpi-title">Facturación Total</span>
+            <span class="kpi-value text-emerald" id="kpi-facturacion">$ 0,00</span>
+            <span class="kpi-sub" id="kpi-tickets">0 tickets emitidos</span>
+          </div>
+
+          <div class="kpi-card">
+            <span class="kpi-title">Ganancia Bruta Estimada</span>
+            <span class="kpi-value text-blue" id="kpi-ganancia">$ 0,00</span>
+            <span class="kpi-sub">Margen sobre costo reposición</span>
+          </div>
+
+          <div class="kpi-card">
+            <span class="kpi-title">Faltante de Cajas (Auditoría)</span>
+            <span class="kpi-value text-red" id="kpi-faltantes">$ 0,00</span>
+            <span class="kpi-sub" id="kpi-sobrantes">Sobrantes: $ 0,00</span>
+          </div>
+
+          <div class="kpi-card">
+            <span class="kpi-title">Fiados Pendientes Empleados</span>
+            <span class="kpi-value text-purple" id="kpi-fiados">$ 0,00</span>
+            <span class="kpi-sub">A descontar en sueldos</span>
+          </div>
+        </div>
+
+        <!-- Grilla de Tablas Informativas -->
+        <div class="tables-grid">
+          
+          <!-- Top Productos -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h3>Top Artículos Más Vendidos</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th class="text-center">Cant.</th>
+                    <th class="text-right">Total ($)</th>
+                    <th class="text-right">Ganancia ($)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-top-productos">
+                  <tr><td colspan="4" class="text-center py-4 text-muted">Cargando...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Medios de Pago -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h3>Ventas por Medio de Pago</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Medio de Pago</th>
+                    <th class="text-center">Operaciones</th>
+                    <th class="text-right">Total Recaudado</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-medios-pago">
+                  <tr><td colspan="3" class="text-center py-4 text-muted">Cargando...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Tabla de Auditoría por Empleado -->
+        <div class="panel-card mt-4">
+          <div class="panel-card-header">
+            <h3>Auditoría de Personal y Rendimiento de Turnos</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Empleado</th>
+                  <th>DNI</th>
+                  <th class="text-center">Tickets</th>
+                  <th class="text-right">Total Facturado</th>
+                  <th class="text-right">Consumo Fiado</th>
+                  <th class="text-right">Faltantes Caja</th>
+                  <th class="text-right">Balance Arqueos</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-empleados">
+                <tr><td colspan="7" class="text-center py-4 text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+  </div>
+
+  <script src="js/estadisticas.js"></script>
+</body>
+</html>

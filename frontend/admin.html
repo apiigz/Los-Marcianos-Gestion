@@ -3,20 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel Administrador</title>
+  <title>Panel Administrador - Centro de Control</title>
   <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
 
-  <!-- Input oculto para controlar la apertura del menú con CSS -->
   <input type="checkbox" id="menu-toggle" class="menu-toggle">
 
   <div class="admin-wrapper">
     
-    <!-- Header superior para dar contraste al fondo blanco -->
+    <!-- Header superior -->
     <header class="admin-header">
       <div class="header-left">
-        <!-- Ícono hamburguesa clickeable -->
         <label for="menu-toggle" class="hamburger-btn" title="Menú">
           <span></span>
           <span></span>
@@ -26,32 +24,114 @@
       </div>
 
       <div class="header-right">
-        <span id="user-name" class="user-display">Facundo Sarmiento</span>
+        <span id="user-name" class="user-display">Cargando usuario...</span>
         <button class="btn-logout" onclick="cerrarSesion()">Cerrar sesión</button>
       </div>
     </header>
 
     <div class="admin-body">
-      <!-- Barra lateral que se despliega al presionar el menú -->
+      <!-- Barra lateral -->
       <aside class="admin-sidebar">
         <nav class="sidebar-nav">
-          <a href="#" class="nav-btn">Usuarios</a>
-          <a href="#" class="nav-btn">Roles</a>
-          <a href="#" class="nav-btn">Sucursales</a>
-          <a href="#" class="nav-btn">Productos</a>
-          <a href="#" class="nav-btn">Categorias</a>
-          <a href="#" class="nav-btn">Proveedores</a>
-          <a href="#" class="nav-btn">Stock por sucursal</a>
-          <a href="#" class="nav-btn">Turnos</a>
-          <a href="#" class="nav-btn">Ventas</a>
-          <a href="#" class="nav-btn nav-link-text">Estadisticas</a>
+          <a href="usuarios.html" class="nav-btn">Usuarios</a>
+          <a href="roles.html" class="nav-btn">Roles</a>
+          <a href="sucursales.html" class="nav-btn">Sucursales</a>
+          <a href="productos.html" class="nav-btn">Productos</a>
+          <a href="categorias.html" class="nav-btn">Categorías</a>
+          <a href="proveedores.html" class="nav-btn">Proveedores</a>
+          <a href="stock.html" class="nav-btn">Stock por sucursal</a>
+          <a href="turnos.html" class="nav-btn">Turnos</a>
+          <a href="ventas-admin.html" class="nav-btn">Ventas</a>
+          <a href="estadisticas.html" class="nav-btn">Estadísticas</a>
         </nav>
       </aside>
 
-      <!-- Contenedor principal de contenidos / vista -->
+      <!-- Panel central operativo -->
       <main class="admin-content">
         <div class="content-placeholder">
-          <!-- Aquí se cargarán dinámicamente las tablas o componentes -->
+          
+          <!-- Fila 1: Flash KPIs del Día -->
+          <div class="dash-kpi-grid">
+            <div class="dash-card-kpi">
+              <span class="dash-kpi-label">Ventas de Hoy</span>
+              <strong class="dash-kpi-value text-green" id="kpi-hoy-total">$ 0,00</strong>
+              <small class="dash-kpi-sub" id="kpi-hoy-tickets">0 operaciones completadas</small>
+            </div>
+
+            <div class="dash-card-kpi">
+              <span class="dash-kpi-label">Cajas y Turnos en Vivo</span>
+              <strong class="dash-kpi-value text-blue" id="kpi-cajas-activas">0 activas</strong>
+              <small class="dash-kpi-sub text-warning" id="kpi-pendientes-arqueo">0 pendientes de auditar</small>
+            </div>
+
+            <div class="dash-card-kpi">
+              <span class="dash-kpi-label">Medio de Pago Líder (Hoy)</span>
+              <strong class="dash-kpi-value text-purple" id="kpi-medio-lider">-</strong>
+              <small class="dash-kpi-sub" id="kpi-medio-monto">$ 0,00 recaudados</small>
+            </div>
+          </div>
+
+          <!-- Fila 2: Accesos Directos Operativos -->
+          <div class="quick-actions-bar">
+            <a href="productos.html" class="quick-btn">+ Crear Nuevo Producto</a>
+            <a href="turnos.html" class="quick-btn">Auditar Cierres Pendientes</a>
+            <a href="stock.html" class="quick-btn">Ver Stock Global</a>
+            <a href="ventas-admin.html" class="quick-btn">Monitorear Ventas</a>
+          </div>
+
+          <!-- Fila 3: Grilla Dual (Alertas de Stock vs Monitor de Turnos) -->
+          <div class="dash-dual-grid">
+            
+            <!-- Panel de Alertas de Stock -->
+            <div class="dash-panel">
+              <div class="dash-panel-header">
+                <h3>⚠️ Alertas de Inventario y Quiebre de Stock</h3>
+                <a href="stock.html" class="dash-link-action">Ir al módulo →</a>
+              </div>
+              <div class="table-responsive">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Sucursal</th>
+                      <th class="text-right">Disponible</th>
+                      <th class="text-right">Mínimo</th>
+                      <th class="text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-alertas-stock">
+                    <tr><td colspan="5" class="text-center py-3 text-muted">Cargando alertas...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Panel de Monitor de Cajas -->
+            <div class="dash-panel">
+              <div class="dash-panel-header">
+                <h3>🖥️ Cajas Activas y Turnos en Espera</h3>
+                <a href="turnos.html" class="dash-link-action">Gestionar turnos →</a>
+              </div>
+              <div class="table-responsive">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Sucursal / Caja</th>
+                      <th>Cajero</th>
+                      <th>Turno</th>
+                      <th class="text-center">Estado</th>
+                      <th class="text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-cajas-vivas">
+                    <tr><td colspan="5" class="text-center py-3 text-muted">Cargando terminales...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       </main>
     </div>

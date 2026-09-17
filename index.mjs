@@ -16,6 +16,8 @@ import rutasProveedores from './modulos/principales/proveedores/rutas.proveedore
 import rutasSucursales from './modulos/principales/sucursales/rutas.sucursales.mjs'
 import rutasStockSucursales from './modulos/productos/stock_sucursal/rutas.stock_sucursal.mjs'
 import rutasTurnos from './modulos/turnos/turno_caja/rutas.turno_caja.mjs'
+import rutasEstadisticas from './modulos/estadisticas/rutas.estadisticas.mjs'
+import rutasDashboard from './modulos/dashboard/rutas.dashboard.mjs'
 
 const app = express()
 dotenv.config()
@@ -47,6 +49,8 @@ app.use('/api/v1/sucursales', rutasSucursales)
 app.use('/api/v1/stock_sucursal', rutasStockSucursales)
 app.use('/api/v1/turno_caja', rutasTurnos)
 app.use('/api/v1/ventas', rutasVenta)
+app.use('/api/v1/estadisticas', rutasEstadisticas)
+app.use('/api/v1/dashboard', rutasDashboard)
 
 app.listen(puerto, () => {
   console.log(`Servidor escuchando en el puerto ${puerto}`)

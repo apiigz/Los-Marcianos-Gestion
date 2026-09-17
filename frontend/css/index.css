@@ -1,107 +1,395 @@
-/* Reset básico y tipografía */
+/* ======================================================= */
+/* PALETA POS — LIGHT THEME TERMINAL (ESTILO STITCH)       */
+/* ======================================================= */
+:root {
+  --bg-canvas: #f8fafc;
+  --color-primary: #044e39;        /* Verde bosque principal */
+  --color-primary-hover: #033f2e;
+  --color-emerald-light: #ecfdf5;  /* Verde menta suave fondo */
+  --color-emerald-border: #a7f3d0;
+  --color-emerald-accent: #059669;
+  
+  --text-dark: #0f172a;
+  --text-body: #334155;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  
+  --card-bg: #ffffff;
+  --border-light: #e2e8f0;
+  --input-bg: #f8fafc;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-body {
-  background-color: #e0e0e0; /* Fondo gris claro general */
+body.pos-pattern {
+  background-color: #f1f5f9;
+  background-image: radial-gradient(#cbd5e1 0.85px, transparent 0.85px);
+  background-size: 24px 24px;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 1. Header superior */
+.top-header {
+  width: 100%;
+  padding: 1rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background-color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  color: #6ee7b7;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* Tarjeta contenedora blanca */
-.login-container {
-  background-color: #ffffff;
-  width: 100%;
-  max-width: 420px;
-  padding: 48px 40px 40px;
-  border-radius: 12px;
-  border: 1px solid #7d7d7d;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+.brand-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
-/* Título */
-.login-title {
-  text-align: center;
-  font-size: 1.55rem;
-  font-weight: 700;
-  color: #1f1f1f;
-  margin-bottom: 34px;
-}
-
-/* Estilos de formulario e inputs */
-.login-form {
+.brand-text {
   display: flex;
   flex-direction: column;
 }
 
-.input-group {
-  margin-bottom: 18px;
+.brand-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
 }
 
-.input-group input {
+.brand-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Badge de terminal activa */
+.terminal-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border-light);
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.badge-dot {
+  position: relative;
+  display: flex;
+  width: 10px;
+  height: 10px;
+}
+
+.ping-ring {
+  position: absolute;
   width: 100%;
-  padding: 14px 16px;
-  font-size: 0.95rem;
-  color: #333;
-  background-color: #f2f2f2;
-  border: 1px solid #757575;
-  border-radius: 6px;
-  outline: none;
-  transition: border-color 0.2s, background-color 0.2s;
+  height: 100%;
+  border-radius: 9999px;
+  background-color: #34d399;
+  opacity: 0.75;
+  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
-.input-group input::placeholder {
-  color: #636363;
+.solid-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background-color: var(--color-emerald-accent);
 }
 
-.input-group input:focus {
-  background-color: #ffffff;
-  border-color: #3a3a3a;
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
 
-/* Enlace de recuperación */
-.forgot-password {
-  text-align: right;
-  margin-top: -2px;
-  margin-bottom: 26px;
-}
-
-.forgot-password a {
-  font-size: 0.85rem;
-  font-style: italic;
-  color: #3f3f3f;
-  text-decoration: none;
-}
-
-.forgot-password a:hover {
-  text-decoration: underline;
-}
-
-/* Botón principal */
-.btn-submit {
-  width: 100%;
-  padding: 14px;
-  background-color: #383838;
-  color: #ffffff;
-  font-size: 1rem;
+.terminal-text {
+  font-size: 0.78rem;
   font-weight: 600;
+  color: var(--text-body);
+}
+
+.terminal-num {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.badge-sep {
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+}
+
+.badge-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: var(--color-emerald-light);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+/* 2. Tarjeta Central */
+.login-wrapper {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-card {
+  background-color: var(--card-bg);
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+.card-accent-bar {
+  height: 6px;
+  background: linear-gradient(90deg, #044e39 0%, #059669 50%, #14b8a6 100%);
+}
+
+.card-body {
+  padding: 2.25rem 2.25rem 2.5rem 2.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.user-avatar-badge {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background-color: var(--color-emerald-light);
+  border: 1px solid var(--color-emerald-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+}
+
+.user-avatar-badge svg {
+  width: 24px;
+  height: 24px;
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.35rem;
+}
+
+.card-sub {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 1.75rem;
+  line-height: 1.35;
+}
+
+/* 3. Formulario */
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 0.85rem;
+  color: var(--text-subtle);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.input-container input {
+  width: 100%;
+  padding: 0.75rem 0.85rem 0.75rem 2.6rem;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  font-size: 0.88rem;
+  color: var(--text-dark);
+  outline: none;
+  transition: all 0.15s ease;
+  font-weight: 500;
+}
+
+.input-container input#password {
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.12em;
+  padding-right: 2.75rem;
+}
+
+.input-container input:hover {
+  background-color: #ffffff;
+}
+
+.input-container input:focus {
+  background-color: #ffffff;
+  border-color: var(--color-emerald-accent);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+
+.btn-toggle-eye {
+  position: absolute;
+  right: 0.75rem;
+  background: transparent;
   border: none;
-  border-radius: 6px;
+  color: var(--text-subtle);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.btn-toggle-eye:hover {
+  color: var(--text-body);
+}
+
+.btn-toggle-eye svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Botón Iniciar Sesión */
+.btn-submit {
+  margin-top: 0.5rem;
+  width: 100%;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(4, 78, 57, 0.2), 0 2px 4px -2px rgba(4, 78, 57, 0.1);
+  transition: all 0.15s ease;
 }
 
 .btn-submit:hover {
-  background-color: #242424;
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 6px 12px -2px rgba(4, 78, 57, 0.3);
 }
 
 .btn-submit:active {
-  background-color: #1a1a1a;
+  transform: scale(0.99);
+}
+
+.submit-arrow {
+  width: 15px;
+  height: 15px;
+}
+
+.kbd-hint {
+  margin-left: 0.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #d1fae5;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+}
+
+/* 4. Footer técnico */
+.system-footer {
+  width: 100%;
+  padding: 1.25rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.footer-separator {
+  color: #cbd5e1;
+}
+
+.footer-content strong {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
 }

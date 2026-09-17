@@ -18,5 +18,9 @@ rutasProducto.get("/", controlador.obtenerTodos);
 rutasProducto.post("/", controlador.crearUno);
 rutasProducto.put("/:id", controlador.actualizarUno);
 rutasProducto.delete("/:id", controlador.eliminarUno);
+rutasProducto.patch('/:id/estado', controlador.cambiarEstado);
+rutasProducto.put('/:id/estado', controlador.cambiarEstado);
+rutasProducto.get('/:id/componentes', controlador.obtenerComponentes);
+rutasProducto.post('/:id/componentes', controlador.guardarComponentes);
 
 export default rutasProducto;

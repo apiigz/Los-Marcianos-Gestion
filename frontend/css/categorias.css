@@ -1,46 +1,53 @@
+/* ======================================================= */
+/* PALETA DARK THEME - ESTILO SUPABASE / CATEGORÍAS        */
+/* ======================================================= */
 :root {
-  --bg-dark-header: #1f1f1f;
-  --bg-dark-sidebar: #383838;
-  --bg-sidebar-btn: #474747;
-  --bg-sidebar-btn-hover: #555555;
-  --bg-sidebar-btn-active: #292929;
-  --bg-main: #f0f2f5;
-  --bg-table: #eaebee;
-  --bg-table-header: #dde0e5;
-  --table-border-v: #ced2d9;
-  --bg-menu-dropdown: #2c2f33;
-  --color-edit: #38bdf8;
-  --color-delete: #ef4444;
-  --color-green: #10b981;
-  --color-text-dark: #1e293b;
-  --color-text-light: #ffffff;
+  --bg-app: #121212;              /* Fondo general */
+  --bg-surface: #171717;          /* Fondo de tarjetas, tablas y sidebar */
+  --bg-surface-elevated: #1f1f1f; /* Cabeceras, hover e inputs */
+  --bg-input: #141414;            /* Fondo de inputs */
+  
+  --border-subtle: rgba(255, 255, 255, 0.08); /* Líneas finas divisorias */
+  --border-focus: rgba(255, 255, 255, 0.25);
+
+  --text-main: #f4f4f5;           /* Blanco suave */
+  --text-muted: #a1a1aa;          /* Texto atenuado */
+  --text-subtle: #71717a;         /* Etiquetas secundarias */
+
+  --color-green: #34d399;         /* Verde menta suave (Guardar / Acciones) */
+  --color-delete: #f87171;        /* Rojo suave */
+  --color-edit: #38bdf8;          /* Azul técnico / Cyan */
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
-  background-color: var(--bg-main);
+  background-color: var(--bg-app);
+  color: var(--text-main);
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-/* Header */
+/* ======================================================= */
+/* 1. HEADER SUPERIOR                                      */
+/* ======================================================= */
 .admin-header {
-  background-color: var(--bg-dark-header);
-  color: var(--color-text-light);
-  height: 55px;
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  height: 56px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 1.5rem;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .header-left {
@@ -50,120 +57,137 @@ body {
 }
 
 .close-icon {
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   cursor: pointer;
   line-height: 1;
-  color: #aaa;
-  transition: color 0.2s;
+  color: var(--text-subtle);
+  transition: color 0.15s ease;
 }
-.close-icon:hover { color: #fff; }
+.close-icon:hover { 
+  color: var(--color-delete); 
+}
 
 .header-title {
-  font-size: 1.15rem;
-  font-weight: 500;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .user-name {
-  font-size: 0.9rem;
-  color: #e2e8f0;
+  font-size: 0.84rem;
+  color: var(--text-muted);
 }
 
 .btn-logout {
-  background-color: #333;
-  color: #fff;
-  border: 1px solid #555;
-  padding: 0.4rem 0.85rem;
-  border-radius: 4px;
+  background-color: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.82rem;
-  transition: background-color 0.2s;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
 }
-.btn-logout:hover { background-color: #444; }
+.btn-logout:hover { 
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border-color: var(--border-focus);
+}
 
-/* Layout */
+/* ======================================================= */
+/* 2. LAYOUT Y SIDEBAR                                     */
+/* ======================================================= */
 .admin-layout {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
-/* Sidebar */
 .admin-sidebar {
-  width: 220px;
-  background-color: var(--bg-dark-sidebar);
+  width: 230px;
+  background-color: var(--bg-surface);
   display: flex;
   flex-direction: column;
-  padding: 1rem 0.75rem;
   flex-shrink: 0;
   overflow-y: auto;
+  border-right: 1px solid var(--border-subtle);
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .nav-item {
   display: block;
-  background-color: var(--bg-sidebar-btn);
-  color: #f1f5f9;
+  background-color: transparent;
+  color: var(--text-muted);
   text-decoration: none;
-  padding: 0.65rem 1rem;
-  border-radius: 5px;
-  font-size: 0.9rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-  transition: background 0.15s;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all 0.15s ease;
 }
 
-.nav-item:hover { background-color: var(--bg-sidebar-btn-hover); }
+.nav-item:hover { 
+  background-color: var(--bg-surface-elevated); 
+  color: var(--text-main);
+}
 
 .nav-item.active {
-  background-color: var(--bg-sidebar-btn-active);
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
   font-weight: 600;
-  border-left: 4px solid var(--color-edit);
+  box-shadow: inset 3px 0 0 0 var(--color-edit);
 }
 
-/* Contenido Principal */
+/* ======================================================= */
+/* 3. ÁREA PRINCIPAL Y TABLA DE CATEGORÍAS                 */
+/* ======================================================= */
 .admin-main {
   flex: 1;
-  padding: 1.25rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background-color: var(--bg-app);
 }
 
 .content-card {
   display: flex;
   flex-direction: column;
   height: 100%;
+  gap: 1rem;
 }
 
 .table-container {
   flex: 1;
-  background-color: var(--bg-table);
-  border-radius: 6px;
-  overflow-y: auto;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+  background-color: var(--bg-surface);
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  overflow: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Tabla */
 .categorias-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.88rem;
-  color: var(--color-text-dark);
+  font-size: 0.82rem;
+  color: var(--text-main);
 }
 
 .categorias-table thead {
-  background-color: var(--bg-table-header);
+  background-color: var(--bg-surface-elevated);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -172,75 +196,47 @@ body {
 .categorias-table th {
   padding: 0.75rem 1rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  border-right: 1px solid var(--table-border-v);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
 }
-.categorias-table th:last-child { border-right: none; }
 
 .categorias-table td {
-  padding: 0.65rem 1rem;
-  border-right: 1px solid var(--table-border-v);
-  border-bottom: none;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
 }
-.categorias-table td:last-child { border-right: none; }
 
 .categorias-table tbody tr {
   transition: background-color 0.12s ease;
-  cursor: pointer;
 }
 
 .categorias-table tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
-.categorias-table tbody tr.editing-row {
-  background-color: #ffffff !important;
-  box-shadow: inset 0 0 0 2px var(--color-edit);
+/* Formatos de columna */
+.categorias-table td:first-child {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-muted);
 }
 
-/* Inputs en fila de edición */
-.table-input {
-  width: 100%;
-  max-width: 320px;
-  padding: 0.35rem 0.5rem;
-  border: 1px solid #94a3b8;
-  border-radius: 3px;
-  font-size: 0.85rem;
-}
-.table-input:focus {
-  outline: none;
-  border-color: var(--color-edit);
-}
-
-.inline-actions-container {
-  display: flex;
-  gap: 0.35rem;
-  justify-content: center;
-}
-
-.btn-inline-accept {
-  background-color: var(--color-green);
-  color: white;
-  border: none;
-  padding: 0.3rem 0.6rem;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.75rem;
+.categorias-table td:nth-child(2) {
   font-weight: 600;
+  color: var(--text-main);
 }
 
-.btn-inline-cancel {
-  background-color: #64748b;
-  color: white;
-  border: none;
-  padding: 0.3rem 0.6rem;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.75rem;
+.categorias-table td:nth-child(3) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--color-edit);
+  font-size: 0.78rem;
 }
 
-/* Menú Contextual Dropdown */
+/* ======================================================= */
+/* 4. MENÚ CONTEXTUAL / ACCIONES EN TABLA                 */
+/* ======================================================= */
 .row-actions-cell {
   position: relative;
   text-align: center;
@@ -251,23 +247,28 @@ body {
   border: none;
   font-size: 1.15rem;
   cursor: pointer;
-  color: #4b5563;
-  padding: 0.2rem 0.5rem;
+  color: var(--text-subtle);
+  padding: 0.2rem 0.4rem;
   border-radius: 4px;
+  transition: color 0.15s;
 }
-.btn-row-menu:hover { background-color: rgba(0, 0, 0, 0.1); }
+.btn-row-menu:hover { 
+  color: var(--text-main); 
+  background-color: var(--bg-surface-elevated);
+}
 
 .row-dropdown-menu {
   position: absolute;
-  right: 0.75rem;
+  right: 0.5rem;
   top: 90%;
-  background-color: var(--bg-menu-dropdown);
-  border-radius: 5px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   z-index: 50;
-  min-width: 120px;
+  min-width: 130px;
   overflow: hidden;
 }
 
@@ -281,42 +282,55 @@ body {
   padding: 0.6rem 1rem;
   text-align: left;
   cursor: pointer;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 500;
-  transition: background-color 0.15s;
+  color: var(--text-main);
+  transition: background-color 0.12s;
 }
-.menu-item:hover { background-color: rgba(255, 255, 255, 0.08); }
+.menu-item:hover { 
+  background-color: rgba(255, 255, 255, 0.05); 
+}
 
 .menu-item-edit { color: var(--color-edit); }
 .menu-item-delete { color: var(--color-delete); }
 
-/* Footer de acciones */
+/* ======================================================= */
+/* 5. FOOTER Y BOTÓN AGREGAR CATEGORÍA                    */
+/* ======================================================= */
 .table-footer-actions {
   display: flex;
   justify-content: flex-end;
-  padding-top: 1rem;
+  padding-top: 0.25rem;
 }
 
 .btn-primary-green {
-  background-color: var(--color-green);
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 0.65rem 1.35rem;
-  font-size: 0.9rem;
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-  transition: background-color 0.15s, transform 0.05s;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
-.btn-primary-green:hover { background-color: #059669; }
-.btn-primary-green:active { transform: translateY(1px); }
+.btn-primary-green:hover { 
+  background-color: rgba(255, 255, 255, 0.08); 
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
 
-/* Modales */
+/* ======================================================= */
+/* 6. MODALES DARK THEME                                   */
+/* ======================================================= */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.55);
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -328,11 +342,12 @@ body {
 }
 
 .modal-dialog {
-  background-color: #ffffff;
-  border-radius: 7px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
   width: 90%;
-  max-width: 440px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  max-width: 480px;
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -341,28 +356,39 @@ body {
 .modal-dialog-sm { max-width: 400px; }
 
 .modal-header {
-  background-color: var(--bg-dark-header);
-  color: #fff;
-  padding: 0.85rem 1.25rem;
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  padding: 1rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid var(--border-subtle);
 }
-.modal-header h2, .modal-header h3 { font-size: 1.05rem; font-weight: 500; }
+.modal-header h2, .modal-header h3 { 
+  font-size: 1rem; 
+  font-weight: 600; 
+  letter-spacing: -0.01em;
+}
 
 .btn-modal-close {
   background: none;
   border: none;
-  color: #aaa;
+  color: var(--text-subtle);
   font-size: 1.4rem;
   cursor: pointer;
+  line-height: 1;
 }
-.btn-modal-close:hover { color: #fff; }
+.btn-modal-close:hover { 
+  color: var(--text-main); 
+}
 
 .modal-body {
-  padding: 1.25rem;
-  font-size: 0.9rem;
-  color: #334155;
+  padding: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .form-group {
@@ -372,50 +398,99 @@ body {
 }
 
 .form-group label {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.form-group input {
-  padding: 0.5rem 0.65rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  font-size: 0.88rem;
-}
-.form-group input:focus {
+.form-group input, 
+.form-group select,
+.form-control {
+  background-color: var(--bg-input);
+  color: var(--text-main);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 0.82rem;
   outline: none;
-  border-color: var(--color-edit);
+  transition: border-color 0.15s;
+}
+
+.form-group input:focus, 
+.form-group select:focus,
+.form-control:focus {
+  border-color: var(--border-focus);
 }
 
 .modal-footer {
-  background-color: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  padding: 0.75rem 1.25rem;
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  padding: 1rem 1.5rem;
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
 }
 
 .btn-cancel {
-  background-color: #e2e8f0;
-  color: #334155;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+  background-color: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: all 0.15s;
 }
-.btn-cancel:hover { background-color: #cbd5e1; }
+.btn-cancel:hover { 
+  background-color: var(--bg-surface-elevated); 
+  color: var(--text-main);
+}
 
 .btn-confirm {
-  background-color: #0284c7;
-  color: #ffffff;
-  border: none;
-  padding: 0.5rem 1.15rem;
-  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  color: var(--color-green);
+  border: 1px solid var(--color-green);
+  padding: 0.45rem 1.25rem;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.15s;
 }
-.btn-confirm:hover { background-color: #0369a1; }
+.btn-confirm:hover { 
+  background-color: var(--color-green);
+  color: #000000;
+}
+
+/* Scrollbars atenuados */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.categorias-table td span[style*="border-radius"] {
+  background-color: rgba(56, 189, 248, 0.1) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Si el badge es "Por Kilo", le damos el acento ámbar tenue */
+.categorias-table td span[style*="border-radius"]:has-text("Kilo"),
+.categorias-table td:nth-child(3) span:not(:empty) {
+  /* Regla general para badges de unidad */
+  letter-spacing: 0.02em;
+}

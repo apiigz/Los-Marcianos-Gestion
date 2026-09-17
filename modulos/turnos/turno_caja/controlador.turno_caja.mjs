@@ -1,5 +1,21 @@
 import * as modelo from './modelo.turno_caja.mjs';
 
+// Función auxiliar para determinar el turno según la hora de Argentina (GMT-3)
+function calcularTurnoSegunHora(fecha = new Date()) {
+  const hora = parseInt(
+    new Intl.DateTimeFormat('es-AR', {
+      hour: 'numeric',
+      hour12: false,
+      timeZone: 'America/Argentina/Cordoba'
+    }).format(fecha),
+    10
+  );
+
+  if (hora >= 6 && hora < 13) return 'MAÑANA';
+  if (hora >= 13 && hora < 20) return 'TARDE';
+  return 'NOCHE';
+}
+
 // GET /api/v1/turnos
 export const obtenerTurnos = async (req, res) => {
   try {
@@ -26,15 +42,20 @@ export const obtenerTurnoPorId = async (req, res) => {
   }
 };
 
-// POST /api/v1/turnos (Apertura)
-export const abrirTurnoo = async (req, res) => {
-  const { caja_fisica_id, nombre_turno, monto_inicial_efectivo } = req.body;
+// POST /api/v1/turnos (Apertura de turno general)
+export const abrirTurnoGeneral = async (req, res) => {
+  let { caja_fisica_id, nombre_turno, monto_inicial_efectivo } = req.body;
 
   try {
-    if (!caja_fisica_id || !nombre_turno || monto_inicial_efectivo === undefined) {
+    if (!caja_fisica_id || monto_inicial_efectivo === undefined) {
       return res.status(400).json({ 
-        error: 'caja_fisica_id, nombre_turno y monto_inicial_efectivo son obligatorios' 
+        error: 'caja_fisica_id y monto_inicial_efectivo son obligatorios' 
       });
+    }
+
+    // Si no enviaron nombre_turno, se calcula automáticamente según la hora
+    if (!nombre_turno || String(nombre_turno).trim() === '') {
+      nombre_turno = calcularTurnoSegunHora();
     }
 
     // Regla de negocio: No permitir abrir un turno si la caja ya tiene uno ABIERTO o EN_CIERRE
@@ -58,18 +79,17 @@ export const abrirTurnoo = async (req, res) => {
   }
 };
 
-//PUT /api/v1/turnos/:id/cierre
+// PUT /api/v1/turnos/:id/cierre
 export async function cerrarTurno(req, res) {
   const { id } = req.params;
   const { monto_real, observaciones } = req.body;
+  const usuario_cierre_id = req.user?.id || null; // Quién está cerrando
 
-  // 1. Validar ID de turno
   const turnoId = parseInt(id, 10);
   if (isNaN(turnoId) || turnoId <= 0) {
     return res.status(400).json({ error: 'El ID del turno proporcionado no es válido.' });
   }
 
-  // 2. Validar monto_real ingresado por el cajero
   if (monto_real === undefined || monto_real === null || monto_real === '') {
     return res.status(400).json({ error: 'Debe ingresar el monto real de efectivo contado en caja.' });
   }
@@ -80,31 +100,29 @@ export async function cerrarTurno(req, res) {
   }
 
   try {
-    // 3. Ejecutar el arqueo y cierre en el modelo
+    // Tomamos al usuario que está cerrando la caja desde la sesión
+    const usuario_cierre_id = req.user?.id ? Number(req.user.id) : null;
+
     const turnoCerrado = await modelo.cerrarTurno({
-      turno_id: turnoId,
-      monto_real: montoRealNum,
-      observaciones: observaciones ? String(observaciones).trim() : null
-    });
+    turno_id: parseInt(id, 10),
+    monto_real: parseFloat(monto_real),
+    observaciones: observaciones ? String(observaciones).trim() : null,
+    usuario_cierre_id
+  });
 
     if (!turnoCerrado) {
       return res.status(404).json({ error: `No se encontró el turno con ID ${turnoId}.` });
     }
 
     return res.status(200).json({
-      mensaje: 'Turno cerrado y arqueo de caja registrado exitosamente.',
-      turno: turnoCerrado
-    });
+    mensaje: 'Turno cerrado y arqueo registrado.',
+    turno: turnoCerrado
+  });
 
   } catch (error) {
     console.error(`Error al cerrar el turno #${turnoId}:`, error);
-
-    if (error.message.includes('Turno no encontrado')) {
-      return res.status(404).json({ error: error.message });
-    }
-
     return res.status(500).json({ 
-      error: error.message || 'Ocurrió un error interno al intentar procesar el arqueo del turno.' 
+      error: error.message || 'Error al procesar el arqueo del turno.' 
     });
   }
 }
@@ -160,8 +178,6 @@ export const declararArqueo = async (req, res) => {
   }
 };
 
-//Controlador de las últimas funciones que agregue de emergencia en modelo.turno_caja.mjs
-
 // GET /api/v1/turno_caja/activo?caja_fisica_id=X
 export async function obtenerTurnoActivo(req, res) {
   try {
@@ -182,22 +198,42 @@ export async function obtenerTurnoActivo(req, res) {
 // POST /api/v1/turno_caja/abrir
 export async function abrirTurno(req, res) {
   try {
-    const { caja_fisica_id, monto_inicial_efectivo, nombre_turno } = req.body;
+    let { 
+      caja_fisica_id, 
+      monto_inicial_efectivo, 
+      nombre_turno, 
+      segundo_cajero_id 
+    } = req.body;
 
     if (!caja_fisica_id || monto_inicial_efectivo === undefined) {
-      return res.status(400).json({ error: 'caja_fisica_id y monto_inicial_efectivo son obligatorios.' });
+      return res.status(400).json({ 
+        error: 'caja_fisica_id y monto_inicial_efectivo son obligatorios.' 
+      });
     }
+
+    // Regla de negocio: No permitir abrir un turno si la caja ya tiene uno ABIERTO o EN_CIERRE
+    const turnoExistente = await modelo.obtenerTurnoAbiertoPorCaja(Number(caja_fisica_id));
+    if (turnoExistente) {
+      return res.status(409).json({ 
+        error: `La caja ya posee el turno #${turnoExistente.id} en estado ${turnoExistente.estado}. Debe cerrarse antes de abrir uno nuevo.` 
+      });
+    }
+
+    // El primer cajero siempre es quien inició la sesión activa
+    const usuario_apertura_id = req.user?.id ? Number(req.user.id) : null;
 
     const nuevoTurno = await modelo.abrirTurno({
       caja_fisica_id: Number(caja_fisica_id),
       monto_inicial_efectivo: parseFloat(monto_inicial_efectivo),
-      nombre_turno: nombre_turno || 'MAÑANA'
+      nombre_turno: nombre_turno ? String(nombre_turno).trim() : undefined,
+      usuario_apertura_id,
+      segundo_cajero_id: segundo_cajero_id ? Number(segundo_cajero_id) : null
     });
 
     return res.status(201).json(nuevoTurno);
   } catch (error) {
     console.error('Error al abrir turno:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || 'Error al abrir el turno' });
   }
 }
 

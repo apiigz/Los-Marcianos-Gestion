@@ -11,5 +11,9 @@ rutasVenta.get("/:id", controlador.obtenerUno);
 rutasVenta.post("/", verifyToken, controlador.crearUno);
 rutasVenta.put("/:id", controlador.actualizarUno);
 rutasVenta.delete("/:id", controlador.eliminarUno);
+rutasVenta.post('/', controlador.crearUno);
+rutasVenta.get('/turno/:turnoId', controlador.obtenerPorTurno);
+rutasVenta.get('/:id/detalle', controlador.obtenerDetalle);
+rutasVenta.post('/:id/reembolso', controlador.reembolsar);
 
 export default rutasVenta;

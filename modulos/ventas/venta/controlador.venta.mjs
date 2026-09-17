@@ -62,92 +62,70 @@ export async function eliminarUno(req, res){
 
 export const crearUno = async (req, res) => {
   try {
-    const { turno_caja_id, terminal_id, articulos, pagos } = req.body;
-
+    const { turno_caja_id, terminal_id, articulos, pagos, empleado_fiado_id, tipo_operacion } = req.body;
     const usuario_id = req.user?.id || req.body.usuario_id;
 
     if (!articulos || !Array.isArray(articulos) || articulos.length === 0) {
-      return res.status(400).json({ error: 'Debe proporcionar al menos un artículo para la venta.' });
+      return res.status(400).json({ error: 'Debe ingresar al menos un artículo.' });
     }
 
     if (!turno_caja_id || !terminal_id) {
-      return res.status(400).json({ error: 'Debe proporcionar turno_caja_id y terminal_id.' });
+      return res.status(400).json({ error: 'Faltan parámetros de turno y terminal.' });
     }
 
-    // 1. Calcular el subtotal de artículos en el servidor
     const subtotalArticulos = Number(
       articulos.reduce((acum, item) => {
         const cantidad = parseFloat(item.cantidad) || 0;
         const precio = parseFloat(item.precio_unitario) || 0;
-        const subtotalLinea = Math.round(cantidad * precio * 100) / 100;
-        return acum + subtotalLinea;
+        return acum + (Math.round(cantidad * precio * 100) / 100);
       }, 0).toFixed(2)
     );
 
-    // 2. Extraer los montos admitiendo tanto Objeto { efectivo: X } como Array [ { forma_pago, monto } ]
-    let montoEfectivo = 0;
-    let montoDebito = 0;
-    let montoCredito = 0;
-    let montoQR = 0;
+    let pagosNormalizados = [];
+    let montoEfectivo = 0, montoDebito = 0, montoCredito = 0, montoQR = 0, montoFiado = 0;
 
     if (Array.isArray(pagos)) {
-      for (const p of pagos) {
-        const metodo = String(p.forma_pago || p.medio_pago || p.metodo || '').toUpperCase();
-        const monto = parseFloat(p.monto) || 0;
-
-        if (metodo.includes('EFECTIVO')) montoEfectivo += monto;
-        else if (metodo.includes('DEBITO') || metodo.includes('DÉBITO')) montoDebito += monto;
-        else if (metodo.includes('CREDITO') || metodo.includes('CRÉDITO')) montoCredito += monto;
-        else if (metodo.includes('QR') || metodo.includes('TRANSFERENCIA')) montoQR += monto;
-      }
-    } else if (typeof pagos === 'object' && pagos !== null) {
-      montoEfectivo = parseFloat(pagos.efectivo) || 0;
-      montoDebito = parseFloat(pagos.debito) || 0;
-      montoCredito = parseFloat(pagos.credito) || 0;
-      montoQR = parseFloat(pagos.qr) || 0;
-    }
-
-    // 3. Suma de bases ingresadas (sin recargo)
-    const baseTotalAsignada = parseFloat((montoEfectivo + montoDebito + montoCredito + montoQR).toFixed(2));
-
-    if (baseTotalAsignada < subtotalArticulos) {
-      return res.status(400).json({
-        message: `Los medios de pago ingresados ($${baseTotalAsignada}) no cubren el total de los productos ($${subtotalArticulos})`
+      pagos.forEach(p => {
+        const medio = String(p.forma_pago || p.medio_pago || '').toUpperCase();
+        const m = parseFloat(p.monto) || 0;
+        if (medio === 'FIADO_EMPLEADO') montoFiado += m;
+        else if (medio.includes('EFECTIVO')) montoEfectivo += m;
+        else if (medio.includes('DEBITO')) montoDebito += m;
+        else if (medio.includes('CREDITO')) montoCredito += m;
+        else if (medio.includes('QR')) montoQR += m;
       });
     }
 
-    // 4. Calcular recargos comerciales (10% débito y crédito)
     const recargoDebito = parseFloat((montoDebito * 0.10).toFixed(2));
     const recargoCredito = parseFloat((montoCredito * 0.10).toFixed(2));
-    const recargosTotales = parseFloat((recargoDebito + recargoCredito).toFixed(2));
-    const totalGeneral = parseFloat((subtotalArticulos + recargosTotales).toFixed(2));
+    const totalGeneral = parseFloat((subtotalArticulos + recargoDebito + recargoCredito).toFixed(2));
 
-    // 5. Preparar array de pagos para guardar
-    const pagosParaGuardar = [
-      { medio_pago: 'EFECTIVO', monto: montoEfectivo, recargo: 0 },
-      { medio_pago: 'DEBITO', monto: montoDebito, recargo: recargoDebito },
-      { medio_pago: 'CREDITO', monto: montoCredito, recargo: recargoCredito },
-      { medio_pago: 'QR', monto: montoQR, recargo: 0 }
-    ].filter(p => p.monto > 0);
+    if (montoFiado > 0 || empleado_fiado_id) {
+      pagosNormalizados = [{ medio_pago: 'FIADO_EMPLEADO', monto: subtotalArticulos, recargo: 0 }];
+    } else {
+      pagosNormalizados = [
+        { medio_pago: 'EFECTIVO', monto: montoEfectivo, recargo: 0 },
+        { medio_pago: 'DEBITO', monto: montoDebito, recargo: recargoDebito },
+        { medio_pago: 'CREDITO', monto: montoCredito, recargo: recargoCredito },
+        { medio_pago: 'QR', monto: montoQR, recargo: 0 }
+      ].filter(p => p.monto !== 0);
+    }
 
-    // 6. Ejecutar la transacción
     const nuevaVenta = await modelo.crearVentaTransaccional({
-      turno_caja_id,
-      terminal_id,
-      usuario_id,
-      total: totalGeneral,
+      turno_caja_id: Number(turno_caja_id),
+      terminal_id: Number(terminal_id),
+      usuario_id: Number(usuario_id),
+      total: (montoFiado > 0 || empleado_fiado_id) ? subtotalArticulos : totalGeneral,
       articulos,
-      pagos: pagosParaGuardar
+      pagos: pagosNormalizados,
+      empleado_fiado_id: empleado_fiado_id ? Number(empleado_fiado_id) : null,
+      tipo_operacion: tipo_operacion || 'VENTA'
     });
 
-    return res.status(201).json({
-      message: 'Venta creada exitosamente',
-      venta: nuevaVenta
-    });
-
+    return res.status(201).json({ message: 'Operación registrada con éxito', venta: nuevaVenta });
   } catch (error) {
-    console.error('Error en controlador de ventas al crear:', error);
-    return res.status(500).json({ error: error.message || 'Error interno al crear la venta' });
+    console.error('Error en controlador de ventas:', error);
+    return res.status(500).json({ error: error.message || 'Error al procesar la venta' });
   }
 };
 
@@ -159,5 +137,35 @@ export const obtenerVentas = async (req, res) => {
   } catch (error) {
     console.error('Error al listar ventas:', error);
     return res.status(500).json({ error: 'Error al obtener el historial de ventas' });
+  }
+};
+
+export const obtenerPorTurno = async (req, res) => {
+  try {
+    const { turnoId } = req.params;
+    const ventas = await modelo.obtenerVentasPorTurno(Number(turnoId));
+    res.status(200).json(ventas);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const obtenerDetalle = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const detalle = await modelo.obtenerDetalleVenta(Number(id));
+    res.status(200).json(detalle);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const reembolsar = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const resultado = await modelo.reembolsarVentaTransaccional(Number(id));
+    res.status(200).json({ message: 'Venta reembolsada con éxito', ...resultado });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };

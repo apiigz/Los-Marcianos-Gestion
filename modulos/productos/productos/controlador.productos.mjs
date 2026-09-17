@@ -99,3 +99,54 @@ export const buscarProductos = async (req, res) => {
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 };
+
+export const cambiarEstado = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { activo } = req.body;
+
+    if (typeof activo !== 'boolean') {
+      return res.status(400).json({ error: 'El campo "activo" debe ser un booleano (true/false).' });
+    }
+
+    const productoActualizado = await modelo.cambiarEstadoProducto(Number(id), activo);
+
+    if (!productoActualizado) {
+      return res.status(404).json({ error: 'Producto no encontrado.' });
+    }
+
+    return res.status(200).json({
+      message: `Producto ${activo ? 'activado' : 'desactivado'} exitosamente.`,
+      producto: productoActualizado
+    });
+  } catch (error) {
+    console.error('Error al cambiar estado de producto:', error);
+    return res.status(500).json({ error: error.message || 'Error interno del servidor.' });
+  }
+};
+
+export const obtenerComponentes = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const componentes = await modelo.obtenerComponentesCombo(Number(id));
+    res.status(200).json(componentes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const guardarComponentes = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { componentes } = req.body; // Array de { producto_ingrediente_id, cantidad }
+
+    if (!Array.isArray(componentes) || componentes.length === 0) {
+      return res.status(400).json({ error: 'Debe especificar al menos un producto ingrediente para la promo.' });
+    }
+
+    await modelo.guardarComponentesCombo(Number(id), componentes);
+    res.status(200).json({ message: 'Componentes guardados exitosamente.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

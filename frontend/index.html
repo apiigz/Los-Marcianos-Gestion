@@ -1,47 +1,142 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iniciar sesión</title>
-  <link rel="stylesheet" href="css/index.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Iniciar Sesión — Facturación POS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/index.css"/>
 </head>
-<body>
+<body class="pos-pattern">
 
-  <main class="login-container">
-    <h1 class="login-title">Iniciar sesión</h1>
-
-    <form class="login-form">
-      <div class="input-group">
-        <input 
-          type="text"
-          inputmode="numeric"
-          pattern="[0-9]*" 
-          maxlength="8"
-          id="dni" 
-          placeholder="DNI" 
-          required 
-          autocomplete="username"
-        >
+  <!-- Barra Superior de Estado del Sistema -->
+  <header class="top-header">
+    <div class="brand-group">
+      <div class="brand-icon">
+        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <rect height="18" rx="2" width="18" x="3" y="3"></rect>
+          <path d="M7 8h10"></path>
+          <path d="M7 12h2"></path>
+          <path d="M11 12h2"></path>
+          <path d="M15 12h2"></path>
+          <path d="M7 16h10"></path>
+        </svg>
       </div>
-
-      <div class="input-group">
-        <input 
-          type="password" 
-          id="password" 
-          placeholder="Contraseña" 
-          required 
-          autocomplete="current-password"
-        >
+      <div class="brand-text">
+        <span class="brand-title">Facturación POS</span>
+        <span class="brand-sub">Terminal de Ventas &amp; Caja</span>
       </div>
+    </div>
 
-      <div class="forgot-password">
-        <a href="#">¿Olvidaste tu contraseña?</a>
+    <div class="terminal-badge">
+      <span class="badge-dot">
+        <span class="ping-ring"></span>
+        <span class="solid-dot"></span>
+      </span>
+      <span class="terminal-text">Terminal <span class="terminal-num" id="terminal-display">#01</span></span>
+      <span class="badge-sep">|</span>
+      <span class="badge-status">En línea</span>
+    </div>
+  </header>
+
+  <!-- Tarjeta Central de Inicio de Sesión -->
+  <main class="login-wrapper">
+    <section class="login-card">
+      <div class="card-accent-bar"></div>
+      
+      <div class="card-body">
+        <!-- Ícono superior de usuario -->
+        <div class="user-avatar-badge">
+          <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+
+        <h1 class="card-title">Iniciar sesión</h1>
+        <p class="card-sub">Ingrese sus credenciales para abrir caja o continuar turno</p>
+
+        <form class="login-form" id="pos-login-form">
+          <!-- Campo DNI -->
+          <div class="form-group">
+            <label class="form-label" for="dni">DNI / Documento de Operador</label>
+            <div class="input-container">
+              <div class="input-icon">
+                <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+                  <rect height="14" rx="2" width="20" x="2" y="5"></rect>
+                  <line x1="2" x2="22" y1="10" y2="10"></line>
+                </svg>
+              </div>
+              <input 
+                type="text" 
+                inputmode="numeric" 
+                pattern="[0-9]*" 
+                maxlength="8" 
+                id="dni" 
+                name="dni" 
+                placeholder="Ej. 38123456" 
+                required 
+                autocomplete="username" 
+                autofocus
+              />
+            </div>
+          </div>
+
+          <!-- Campo Contraseña -->
+          <div class="form-group">
+            <label class="form-label" for="password">Contraseña / PIN</label>
+            <div class="input-container">
+              <div class="input-icon">
+                <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+                  <rect height="11" rx="2" ry="2" width="18" x="3" y="11"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                placeholder="••••••••" 
+                required 
+                autocomplete="current-password"
+              />
+              <button type="button" class="btn-toggle-eye" id="toggle-password-visibility" title="Mostrar u ocultar contraseña">
+                <svg id="eye-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Botón de Ingreso -->
+          <button type="submit" class="btn-submit" id="btn-login-submit">
+            <span>Iniciar sesión</span>
+            <svg class="submit-arrow" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              <polyline points="10 17 15 12 10 7"></polyline>
+              <line x1="15" x2="3" y1="12" y2="12"></line>
+            </svg>
+            <kbd class="kbd-hint">Enter ↵</kbd>
+          </button>
+        </form>
       </div>
-
-      <button type="submit" class="btn-submit">Iniciar sesión</button>
-    </form>
+    </section>
   </main>
-<script src="js/index.js"></script>
+
+  <!-- Pie Técnico del Sistema -->
+  <footer class="system-footer">
+    <div class="footer-content">
+      <span>Sistema POS v0.1.0</span>
+      <span class="footer-separator">•</span>
+      <span>Sucursal: <strong id="footer-sucursal">Sucursal Hidalgo</strong></span>
+      <span class="footer-separator">•</span>
+      <span>Terminal: <span class="font-mono" id="footer-terminal-ip">Terminal #01</span></span>
+    </div>
+  </footer>
+
+  <script src="js/index.js"></script>
 </body>
 </html>

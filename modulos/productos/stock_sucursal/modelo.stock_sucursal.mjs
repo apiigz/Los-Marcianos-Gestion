@@ -142,14 +142,16 @@ export async function actualizarStockSucursal(sucursal_id, producto_id, cantidad
 
 // Ajuste relativo atómico (+ reposición / - venta)
 // Recibe 'delta' numérico (admite fracciones como -0.250 kg) y soporta cliente transaccional
-export async function ajustarStock(sucursal_id, producto_id, delta, dbClient = pool) {
+export async function ajustarStock(sucursalId, productoId, cantidadDelta, client) {
   const query = `
-    UPDATE stock_sucursal 
-    SET cantidad_disponible = cantidad_disponible + $1
-    WHERE sucursal_id = $2 AND producto_id = $3
-    RETURNING *;
+    INSERT INTO stock_sucursal (sucursal_id, producto_id, cantidad_disponible)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (sucursal_id, producto_id)
+    DO UPDATE SET 
+      cantidad_disponible = stock_sucursal.cantidad_disponible + EXCLUDED.cantidad_disponible
+    RETURNING id, sucursal_id, producto_id, cantidad_disponible;
   `;
-  const { rows } = await dbClient.query(query, [delta, sucursal_id, producto_id]);
+  const { rows } = await client.query(query, [sucursalId, productoId, cantidadDelta]);
   return rows[0];
 }
 

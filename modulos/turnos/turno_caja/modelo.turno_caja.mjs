@@ -55,7 +55,7 @@ export const obtenerPorId = async (id) => {
 };
 
 // Apertura de un nuevo turno
-export async function abrirTurnoo({ caja_fisica_id, usuario_id, monto_apertura }) {
+export async function abrirTurnaoo({ caja_fisica_id, usuario_id, monto_apertura }) {
   const apertura = Number(parseFloat(monto_apertura || 0).toFixed(2));
 
   const query = `
@@ -79,38 +79,20 @@ export async function abrirTurnoo({ caja_fisica_id, usuario_id, monto_apertura }
 }
 
 //Cerrar turno tradicional
-export async function cerrarTurno({ turno_id, monto_real, observaciones = null }) {
-  const conteoReal = Number(parseFloat(monto_real || 0).toFixed(2));
-
-  // 1. Obtenemos los totales acumulados actuales
-  const { rows } = await pool.query(`
-    SELECT monto_esperado_sistema, total_esperado_debito, total_esperado_credito, total_esperado_qr
-    FROM turno_caja 
-    WHERE id = $1;
-  `, [turno_id]);
-
-  if (rows.length === 0) throw new Error('Turno no encontrado');
-
-  const esperadoEfectivo = Number(parseFloat(rows[0].monto_esperado_sistema || 0).toFixed(2));
-  
-  // 2. La diferencia aplica únicamente sobre el efectivo físico
-  const diferencia = Number((conteoReal - esperadoEfectivo).toFixed(2));
-
-  // 3. Persistimos el cierre
-  const queryCierre = `
-    UPDATE turno_caja 
+export async function cerrarTurno({ turno_id, monto_real, observaciones, usuario_cierre_id }) {
+  const query = `
+    UPDATE turno_caja
     SET 
-      monto_real = $1,
-      diferencia = $2,
-      observaciones = $3,
-      fecha_hora_cierre = NOW(),
-      estado = 'CERRADO'
-    WHERE id = $4
+      monto_real_arqueo = $2,
+      diferencia = ($2 - monto_esperado_sistema),
+      estado = 'CERRADO',
+      fecha_cierre = NOW(),
+      usuario_cierre_id = COALESCE($3, usuario_cierre_id)
+    WHERE id = $1
     RETURNING *;
   `;
-
-  const resultado = await pool.query(queryCierre, [conteoReal, diferencia, observaciones, turno_id]);
-  return resultado.rows[0];
+  const { rows } = await pool.query(query, [turno_id, monto_real, usuario_cierre_id]);
+  return rows[0];
 }
 
 // Cierre Rápido (por el cajero): pasa a EN_CIERRE y estampa fecha de cierre
@@ -216,8 +198,15 @@ export async function obtenerTurnoActivoPorCaja(caja_fisica_id) {
 }
 
 // 2. Abrir nuevo turno con fondo de inicio
-export async function abrirTurno({ caja_fisica_id, monto_inicial_efectivo, nombre_turno = 'MAÑANA' }) {
+export async function abrirTurno({ 
+  caja_fisica_id, 
+  monto_inicial_efectivo, 
+  nombre_turno = obtenerTurnoActual(),
+  usuario_apertura_id = null,
+  segundo_cajero_id = null
+}) {
   const inicial = Number(parseFloat(monto_inicial_efectivo || 0).toFixed(2));
+  const turnoFinal = nombre_turno || obtenerTurnoActual();
 
   const query = `
     INSERT INTO turno_caja (
@@ -229,13 +218,22 @@ export async function abrirTurno({ caja_fisica_id, monto_inicial_efectivo, nombr
       total_esperado_debito,
       total_esperado_credito,
       total_esperado_qr,
-      estado
+      estado,
+      usuario_apertura_id,
+      segundo_cajero_id
     ) 
-    VALUES ($1, $2, NOW(), $3, $3, 0.00, 0.00, 0.00, 'ABIERTO')
+    VALUES ($1, $2, NOW(), $3, $3, 0.00, 0.00, 0.00, 'ABIERTO', $4, $5)
     RETURNING *;
   `;
 
-  const { rows } = await pool.query(query, [caja_fisica_id, nombre_turno, inicial]);
+  const { rows } = await pool.query(query, [
+    caja_fisica_id,
+    turnoFinal,
+    inicial,
+    usuario_apertura_id,
+    segundo_cajero_id
+  ]);
+
   return rows[0];
 }
 
@@ -277,4 +275,19 @@ export async function cerrarTurnoRapido(id) {
   `;
   const { rows } = await pool.query(query, [id]);
   return rows[0];
+}
+
+export async function obtenerTurnoActual() {
+  const hora = parseInt(
+    new Intl.DateTimeFormat('es-AR', {
+      hour: 'numeric',
+      hour12: false,
+      timeZone: 'America/Argentina/Cordoba'
+    }).format(new Date()),
+    10
+  );
+
+  if (hora >= 6 && hora < 13) return 'MAÑANA';
+  if (hora >= 13 && hora < 20) return 'TARDE';
+  return 'NOCHE';
 }

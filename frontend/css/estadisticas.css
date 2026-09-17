@@ -1,0 +1,334 @@
+/* ======================================================= */
+/* PALETA DARK THEME - ESTILO SUPABASE / MODERN CONSOLE    */
+/* ======================================================= */
+:root {
+  --bg-app: #121212;             /* Fondo general */
+  --bg-surface: #171717;         /* Fondo de tarjetas y sidebar */
+  --bg-surface-elevated: #1f1f1f;/* Encabezados y hover suave */
+  --bg-input: #141414;           /* Fondo de select e inputs */
+  
+  --border-subtle: rgba(255, 255, 255, 0.08); /* Líneas delgadas separadoras */
+  --border-focus: rgba(255, 255, 255, 0.22);
+
+  --text-main: #f4f4f5;          /* Blanco suave */
+  --text-muted: #a1a1aa;         /* Gris atenuado para etiquetas secundarias */
+  --text-subtle: #71717a;        /* Gris más oscuro para bordes y títulos menores */
+
+  /* Colores de datos equilibrados (sin fatiga visual) */
+  --accent-green: #34d399;       /* Verde menta suave (números positivos/ingresos) */
+  --accent-red: #f87171;         /* Rojo suave desaturado (faltantes/reembolsos) */
+  --accent-blue: #38bdf8;        /* Celeste/Azul técnico (ganancia/kpis informativos) */
+  --accent-purple: #a78bfa;      /* Violeta tenue (cuentas de empleados) */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+}
+
+.admin-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ======================================================= */
+/* 1. SIDEBAR LATERAL                                      */
+/* ======================================================= */
+.sidebar {
+  width: 230px;
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  height: 60px;
+}
+
+.sidebar-header h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-nav a {
+  padding: 0.85rem 1.5rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.86rem;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-nav a:hover {
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
+}
+
+.sidebar-nav a.active {
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 0 var(--accent-blue);
+}
+
+/* ======================================================= */
+/* 2. ÁREA PRINCIPAL Y TOPBAR                              */
+/* ======================================================= */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-app);
+  min-width: 0;
+}
+
+.topbar {
+  background-color: var(--bg-surface);
+  padding: 0.85rem 2rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  height: 60px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.filter-group select,
+.filter-group input[type="date"] {
+  background-color: var(--bg-input);
+  color: var(--text-main);
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.filter-group select:focus,
+.filter-group input[type="date"]:focus {
+  border-color: var(--border-focus);
+}
+
+.btn-primary {
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-primary:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.user-action {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-logout:hover {
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--bg-surface-elevated);
+}
+
+/* ======================================================= */
+/* 3. CONTENIDO DEL DASHBOARD & CARDS                      */
+/* ======================================================= */
+.dashboard-body {
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+}
+
+/* KPIs Grid */
+.kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.kpi-card {
+  background-color: var(--bg-surface);
+  padding: 1.35rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.kpi-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-subtle);
+}
+
+.kpi-value {
+  font-size: 1.65rem;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: -0.02em;
+}
+
+.kpi-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Acentos de métricas */
+.text-emerald { color: var(--accent-green); }
+.text-blue    { color: var(--accent-blue); }
+.text-red     { color: var(--accent-red); }
+.text-purple  { color: var(--accent-purple); }
+
+/* ======================================================= */
+/* 4. PANELES Y TABLAS DE DATOS                            */
+/* ======================================================= */
+.tables-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+  .tables-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel-card {
+  background-color: var(--bg-surface);
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.panel-card-header {
+  padding: 0.9rem 1.25rem;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.panel-card-header h3 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.data-table th {
+  background-color: var(--bg-surface-elevated);
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+
+.data-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
+}
+
+.data-table tbody tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* ======================================================= */
+/* 5. UTILIDADES                                           */
+/* ======================================================= */
+.text-right  { text-align: right; }
+.text-center { text-align: center; }
+.text-muted  { color: var(--text-muted); }
+.mt-4        { margin-top: 1.25rem; }
+.hidden      { display: none !important; }
+
+/* Scrollbar tenue */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

@@ -22,12 +22,15 @@
   <div class="admin-layout">
     <!-- Sidebar de navegación -->
     <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <h2>Administrador</h2>
+      </div>
       <nav class="sidebar-nav">
         <a href="usuarios.html" class="nav-item">Usuarios</a>
         <a href="roles.html" class="nav-item">Roles</a>
         <a href="sucursales.html" class="nav-item">Sucursales</a>
         <a href="productos.html" class="nav-item active">Productos</a>
-        <a href="categorias.html" class="nav-item">Categorias</a>
+        <a href="categorias.html" class="nav-item">Categorías</a>
         <a href="proveedores.html" class="nav-item">Proveedores</a>
         <a href="stock.html" class="nav-item">Stock por sucursal</a>
         <a href="turnos.html" class="nav-item">Turnos</a>
@@ -39,6 +42,53 @@
     <!-- Área de Trabajo -->
     <main class="admin-main">
       <section class="content-card">
+        <!-- BARRA SUPERIOR DE BÚSQUEDA Y FILTROS -->
+        <div class="products-filters-bar">
+          <!-- Buscador por texto / código de barra -->
+          <div class="filter-search-box">
+            <input 
+              type="text" 
+              id="input-buscar-producto" 
+              class="filter-input-search" 
+              placeholder="Buscar por código de barra o descripción..." 
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="filters-dropdowns-group">
+            <!-- Filtro Categoría -->
+            <div class="filter-item">
+              <label for="filtro-categoria">Categoría</label>
+              <select id="filtro-categoria" class="filter-select">
+                <option value="ALL">Todas las categorías</option>
+              </select>
+            </div>
+
+            <!-- Filtro Proveedor -->
+            <div class="filter-item">
+              <label for="filtro-proveedor">Proveedor</label>
+              <select id="filtro-proveedor" class="filter-select">
+                <option value="ALL">Todos los proveedores</option>
+              </select>
+            </div>
+
+            <!-- Ordenamiento por Precio o Fecha -->
+            <div class="filter-item">
+              <label for="filtro-orden">Ordenar por</label>
+              <select id="filtro-orden" class="filter-select">
+                <option value="creacion_desc">Más recientes primero</option>
+                <option value="creacion_asc">Más antiguos primero</option>
+                <option value="precio_desc">Mayor precio minorista</option>
+                <option value="precio_asc">Menor precio minorista</option>
+                <option value="alfabetico">Alfabético (A - Z)</option>
+              </select>
+            </div>
+
+            <button type="button" id="btn-limpiar-filtros" class="btn-clean-filters">
+              Limpiar
+            </button>
+          </div>
+        </div>
         <div class="table-container">
           <table class="products-table" id="products-table">
             <thead>
@@ -198,6 +248,69 @@
       </div>
     </div>
   </div>
+  <!-- MODAL DE CONFIGURACIÓN DE PROMO / COMBO (Estilos nativos independientes) -->
+<div id="modal-combo" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+  <div style="background: white; border-radius: 12px; width: 100%; max-width: 550px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
+    
+    <!-- Cabecera -->
+    <div style="background: #1e293b; color: white; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h3 id="modal-combo-titulo" style="margin: 0; font-size: 1.05rem; font-weight: bold;">Configurar Combo / Promo</h3>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.78rem; color: #94a3b8;">Defina qué productos y qué cantidades descuenta del stock esta promoción.</p>
+      </div>
+      <button type="button" onclick="cerrarModalCombo()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+    </div>
+
+    <!-- Cuerpo -->
+    <div style="padding: 1.25rem; overflow-y: auto; flex: 1;">
+      
+      <!-- Buscador para agregar ingrediente -->
+      <div style="margin-bottom: 1rem; position: relative;">
+        <label style="display: block; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.35rem; color: #334155;">
+          Agregar Producto Componente:
+        </label>
+        <input 
+          type="text" 
+          id="input-buscar-ingrediente" 
+          placeholder="Escriba para buscar por nombre o código..." 
+          autocomplete="off"
+          style="width: 100%; box-sizing: border-box; padding: 0.55rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;"
+        />
+        <ul id="lista-sugerencias-ingredientes" style="display: none; position: absolute; left: 0; right: 0; top: 100%; margin: 0.25rem 0 0 0; padding: 0; list-style: none; background: white; border: 1px solid #cbd5e1; border-radius: 6px; max-height: 180px; overflow-y: auto; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 50;"></ul>
+      </div>
+
+      <!-- Tabla de componentes seleccionados -->
+      <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 1rem;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.82rem;">
+          <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; color: #64748b; font-size: 0.7rem;">
+            <tr>
+              <th style="padding: 0.5rem 0.75rem;">Producto</th>
+              <th style="padding: 0.5rem 0.75rem; text-align: center; width: 130px;">Cant. a Descontar</th>
+              <th style="padding: 0.5rem 0.75rem; text-align: center; width: 40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-componentes-combo" style="color: #1e293b;">
+            <!-- Filas dinámicas -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 0.6rem 0.75rem; border-radius: 6px; font-size: 0.75rem; line-height: 1.4;">
+        💡 <strong>Importante:</strong> Al venderse esta promo, el stock de cada uno de los productos listados se descontará automáticamente en la sucursal del cajero.
+      </div>
+    </div>
+
+    <!-- Pie / Botones -->
+    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 0.75rem 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+      <button type="button" onclick="cerrarModalCombo()" style="padding: 0.45rem 0.9rem; background: #e2e8f0; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: #475569;">
+        Cancelar
+      </button>
+      <button type="button" id="btn-guardar-combo" style="padding: 0.45rem 1rem; background: #059669; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; color: white;">
+        Guardar Receta
+      </button>
+    </div>
+  </div>
+</div>
 
   <script src="js/productos.js"></script>
 </body>

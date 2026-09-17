@@ -1,380 +1,161 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+/* ======================================================= */
+/* 1. SCROLLBAR PERSONALIZADO Y RESET DE INPUTS            */
+/* ======================================================= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
-body {
-  background-color: #efefef;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Header Verde */
-.pos-header {
-  background-color: #2e7d32;
-  color: #ffffff;
-  padding: 12px 28px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-}
-
-.header-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pos-badge {
-  background-color: #1b5e20;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.header-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.header-user {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 0.9rem;
-}
-
-.btn-exit {
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.4);
-  color: #fff;
-  padding: 5px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-/* Contenedor Expandido */
-.pos-container {
-  width: 96vw;
-  max-width: 1400px;
-  margin: 18px auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Buscador */
-.scanner-bar input {
-  width: 100%;
-  padding: 14px 18px;
-  font-size: 1.1rem;
-  border-radius: 8px;
-  border: 2px solid #2e7d32;
-  outline: none;
-  background-color: #ffffff;
-}
-
-.scanner-bar input:focus {
-  box-shadow: 0 0 8px rgba(46, 125, 50, 0.4);
-}
-
-/* Grid de Trabajo */
-.pos-workspace {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 20px;
-  align-items: start;
-}
-
-.workspace-main {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Tabla de Facturación */
-.table-container {
-  background: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  min-height: 320px;
-  max-height: 420px;
-  overflow-y: auto;
-}
-
-.pos-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.pos-table th {
-  background-color: #f7f7f7;
-  padding: 12px;
-  border-bottom: 2px solid #ddd;
-  font-size: 0.85rem;
-  color: #444;
-}
-
-.pos-table td {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  font-size: 0.95rem;
-}
-
-.text-right { text-align: right; }
-.bold { font-weight: 700; }
-
-.btn-remove {
-  background: none;
-  border: none;
-  color: #c62828;
-  font-size: 1.2rem;
-  cursor: pointer;
-}
-
-/* Medios de Pago */
-.payment-block {
-  background: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  padding: 16px 20px;
-}
-
-.payment-block-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.tax-badge {
-  background-color: #fff3e0;
-  color: #e65100;
-  font-size: 0.75rem;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.payment-inputs-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.pay-input-item label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.currency-input {
-  display: flex;
-  align-items: center;
-  background: #f9f9f9;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  padding: 0 8px;
-}
-
-.currency-input input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 8px 4px;
-  font-size: 0.95rem;
-  outline: none;
-}
-
-.payment-diff {
-  margin-top: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-align: center;
-  padding: 8px;
-  border-radius: 4px;
-}
-
-.diff-missing { background: #ffebee; color: #c62828; }
-.diff-exact { background: #e8f5e9; color: #2e7d32; }
-.diff-excess { background: #fffde7; color: #f57f17; }
-
-/* Sidebar Lateral */
-.workspace-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.total-display-card {
-  background-color: #242424;
-  color: #ffffff;
-  padding: 30px 16px;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.label-total {
-  font-size: 0.8rem;
-  letter-spacing: 1px;
-  color: #aaa;
-}
-
-.amount-total {
-  display: block;
-  font-size: 2.8rem;
-  font-weight: 800;
-  margin: 10px 0;
-  color: #4caf50;
-}
-
-.surcharge-notice {
-  font-size: 0.8rem;
-  color: #ddd;
-}
-
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.btn-action {
-  width: 100%;
-  padding: 16px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.btn-invoice {
-  background-color: #2e7d32;
-  color: #ffffff;
-}
-
-.btn-invoice:disabled {
-  background-color: #9e9e9e;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.btn-cancel {
-  background-color: #d32f2f;
-  color: #ffffff;
-}
-
-.scanner-container {
-  position: relative;
-  width: 100%;
-}
-
-.scanner-container input {
-  width: 100%;
-  padding: 14px 18px;
-  font-size: 1.05rem;
-  border-radius: 8px;
-  border: 2px solid #2e7d32;
-  outline: none;
-  background-color: #ffffff;
-}
-
-/* Menú predictivo flotante */
-.suggestions-list {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: #ffffff;
-  border: 1px solid #c0c0c0;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-  list-style: none;
-  max-height: 260px;
-  overflow-y: auto;
-  z-index: 50;
-  padding: 0;
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
   margin: 0;
 }
+input[type="number"] {
+  -moz-appearance: textfield;
+}
 
-.suggestions-list li {
-  padding: 12px 16px;
+#search-suggestions li {
+  padding: 0.65rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 0.95rem;
+  transition: background-color 0.15s;
 }
-
-.suggestions-list li:last-child {
+#search-suggestions li:hover {
+  background-color: #f8fafc;
+}
+#search-suggestions li:last-child {
   border-bottom: none;
 }
 
-.suggestions-list li:hover,
-.suggestions-list li.active {
-  background-color: #e8f5e9;
-  color: #1b5e20;
+/* ======================================================= */
+/* 2. ADAPTACIÓN RESPONSIVA Y ZOOM VÍA @MEDIA             */
+/* ======================================================= */
+
+/* Pantallas medianas o Zoom al 110% - 125% (Ancho < 1536px) */
+@media (max-width: 1536px) {
+  header .max-w-\[1720px\] {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Reducir ligeramente fuentes y paddings de botones del header */
+  header button {
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.7rem !important;
+  }
+  
+  /* Ajustar tamaño del Total gigante */
+  #label-total-pagar {
+    font-size: 3rem !important;
+    line-height: 1 !important;
+  }
+
+  /* Compactar botones laterales */
+  #btn-facturar {
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+    font-size: 1rem !important;
+  }
 }
 
-.suggestions-list .item-price {
-  font-weight: 700;
-  color: #2e7d32;
+/* Pantallas compactas / Laptops de 14" / Zoom al 150% (Ancho < 1280px) */
+@media (max-width: 1280px) {
+  /* Permitir scroll natural en el contenedor principal si no cabe en alto */
+  main[data-purpose="pos-workspace"],
+  main {
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 0;
+  }
+
+  /* Ocultar etiquetas largas en header si aprieta */
+  #user-display {
+    max-width: 110px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Ajuste de inputs de medios de pago a 2 columnas */
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Reducir altura del buscador */
+  #product-search-input {
+    padding-top: 0.6rem !important;
+    padding-bottom: 0.6rem !important;
+    font-size: 0.9rem !important;
+  }
 }
 
-/* Selector numérico en la fila del carrito */
-.qty-stepper {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  background-color: #fff;
-  overflow: hidden;
+/* Pantallas pequeñas / Tablets / Zoom al 175%+ (Ancho < 1024px) */
+@media (max-width: 1024px) {
+  header {
+    height: auto !important;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  header .max-w-\[1720px\] {
+    flex-wrap: wrap;
+    height: auto !important;
+    gap: 0.5rem;
+  }
+
+  /* Apilar panel de facturación debajo de la tabla */
+  .xl\:grid-cols-12 {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .xl\:col-span-8,
+  .xl\:col-span-4 {
+    width: 100% !important;
+  }
+
+  #pos-items-table {
+    min-width: 600px; /* Habilita scroll horizontal en tabla sin deformar */
+  }
+  
+  .grid-cols-4,
+  .sm\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
 }
 
-.qty-btn {
-  background-color: #f8fafc;
-  border: none;
-  color: #334155;
-  width: 24px;
-  height: 26px;
-  font-size: 0.85rem;
-  font-weight: bold;
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.15s;
-}
+/* Adaptación por Altura (Pantallas con resolución 1366x768 o zoom vertical) */
+@media (max-height: 800px) {
+  body {
+    overflow-y: auto !important;
+  }
 
-.qty-btn:hover {
-  background-color: #e2e8f0;
-}
+  main {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+    gap: 0.75rem !important;
+  }
 
-.qty-input {
-  width: 42px;
-  height: 26px;
-  border: none;
-  text-align: center;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #1e293b;
-  outline: none;
-  padding: 0;
-  appearance: textfield;
-}
+  /* Reducir paddings de tarjetas de totales */
+  #label-total-pagar {
+    font-size: 2.5rem !important;
+  }
 
-.qty-input::-webkit-outer-spin-button,
-.qty-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.25rem !important;
+  }
 }
