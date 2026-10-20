@@ -67,6 +67,7 @@ export const buscarPorNombre = async (termino) => {
       p.descripcion, 
       p.precio_minorista, 
       p.alicuota_iva,
+      p.es_combo,
       COALESCE(c.unidad_medida, 'UNIDAD') AS unidad_medida
     FROM producto p
     LEFT JOIN categoria c ON p.categoria_id = c.id
@@ -143,4 +144,12 @@ export async function guardarComponentesCombo(comboProductoId, componentes) {
   } finally {
     client.release();
   }
+}
+
+// Precios e IVA reales para valorizar una venta (el servidor manda, no el front)
+export async function obtenerPorIds(ids) {
+  const { rows } = await pool.query(
+    `SELECT id, descripcion, precio_minorista, alicuota_iva, activo
+     FROM producto WHERE id = ANY($1::int[])`, [ids]);
+  return rows;
 }

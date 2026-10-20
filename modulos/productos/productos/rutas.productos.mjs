@@ -1,26 +1,23 @@
 import { Router } from 'express';
-import * as controlador from './controlador.productos.mjs';
-import { verifyToken, checkRole } from '../../middlewares/auth.middleware.mjs';
+import * as c from './controlador.productos.mjs';
+import { requirePermiso } from '../../middlewares/auth.middleware.mjs';
 
-const rutasProducto = new Router();
+const r = new Router();
 
-// Middleware común: solo usuarios logueados con rol cajero o admin
-rutasProducto.use(verifyToken, checkRole('CAJERO', 'ADMINISTRADOR'));
+// --- Búsquedas del POS (rutas fijas ANTES de /:id) ---
+r.get('/buscar',          requirePermiso('pos.acceder', 'productos.ver'), c.buscarProductos);
+r.get('/codigo/:codigo',  requirePermiso('pos.acceder', 'productos.ver'), c.obtenerPorCodigo);
 
-// Rutas de búsqueda para el POS:
-rutasProducto.get('/buscar', controlador.buscarProductos);        // GET /api/productos/buscar?q=coca
-rutasProducto.get('/codigo/:codigo', controlador.obtenerPorCodigo); // GET /api/productos/codigo/779123456
+// --- Catálogo (admin) ---
+r.get('/',                requirePermiso('productos.ver'),    c.obtenerTodos);
+r.get('/:id',             requirePermiso('productos.ver'),    c.obtenerUno);
+r.get('/:id/componentes', requirePermiso('productos.ver'),    c.obtenerComponentes);
 
-// Aquí siguen tus rutas CRUD previas:
-rutasProducto.get("/:id", controlador.obtenerUno);
+r.post('/',                requirePermiso('productos.editar'), c.crearUno);
+r.put('/:id',              requirePermiso('productos.editar'), c.actualizarUno);
+r.delete('/:id',           requirePermiso('productos.editar'), c.eliminarUno);
+r.patch('/:id/estado',     requirePermiso('productos.editar'), c.cambiarEstado);
+r.put('/:id/estado',       requirePermiso('productos.editar'), c.cambiarEstado);
+r.post('/:id/componentes', requirePermiso('productos.editar'), c.guardarComponentes);
 
-rutasProducto.get("/", controlador.obtenerTodos);
-rutasProducto.post("/", controlador.crearUno);
-rutasProducto.put("/:id", controlador.actualizarUno);
-rutasProducto.delete("/:id", controlador.eliminarUno);
-rutasProducto.patch('/:id/estado', controlador.cambiarEstado);
-rutasProducto.put('/:id/estado', controlador.cambiarEstado);
-rutasProducto.get('/:id/componentes', controlador.obtenerComponentes);
-rutasProducto.post('/:id/componentes', controlador.guardarComponentes);
-
-export default rutasProducto;
+export default r;

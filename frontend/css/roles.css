@@ -478,3 +478,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+.modal-dialog-lg { max-width: 680px; }
+.permisos-grupo { border: 1px solid var(--border-subtle); border-radius: 8px; padding: .5rem 1rem .75rem; }
+.permisos-grupo legend { padding: 0 .4rem; font-size: .75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--color-purple); cursor: pointer; }
+.permiso-item { display: flex; gap: .6rem; align-items: flex-start; padding: .35rem 0; cursor: pointer; }
+.permiso-item input { margin-top: .2rem; accent-color: var(--color-green); }
+.permiso-item small { display: block; color: var(--text-subtle); font-family: ui-monospace, monospace; font-size: .7rem; }

@@ -69,13 +69,8 @@ export const eliminarUno = async (req, res) => {
 
 export const obtenerPorCodigo = async (req, res) => {
   try {
-    const { codigo } = req.params;
-    const producto = await modelo.buscarPorCodigoBarra(codigo);
-
-    if (!producto) {
-      return res.status(404).json({ message: 'Producto no encontrado' });
-    }
-
+    const producto = await modelo.buscarProductoPorCodigo(req.params.codigo);
+    if (!producto) return res.status(404).json({ message: 'Producto no encontrado' });
     res.json(producto);
   } catch (error) {
     console.error('Error al buscar por código:', error);

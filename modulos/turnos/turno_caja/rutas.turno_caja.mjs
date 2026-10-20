@@ -1,34 +1,24 @@
 import { Router } from 'express';
-import * as controlador from './controlador.turno_caja.mjs';
-import {verifyToken} from '../../middlewares/auth.middleware.mjs'
-// Middlewares de autenticación si o si acá
+import * as c from './controlador.turno_caja.mjs';
+import { requirePermiso } from '../../middlewares/auth.middleware.mjs';
 
-const rutasTurnos = Router();
+const r = Router();
 
-//Abrir turno
-rutasTurnos.post('/abrir', verifyToken, controlador.abrirTurno);
+// --- Rutas fijas primero (antes que /:id) ---
+r.post('/abrir',  requirePermiso('turno.abrir'),   c.abrirTurno);
+r.get('/activo',  requirePermiso('pos.acceder'),   c.obtenerTurnoActivo);
+r.post('/salir',  requirePermiso('pos.acceder'),   c.salir);
 
-//Verificar turno activo
-rutasTurnos.get('/activo', verifyToken, controlador.obtenerTurnoActivo);
+// --- Administración ---
+r.get('/',        requirePermiso('turno.ver_todos'), c.obtenerTurnos);
+r.get('/:id',     requirePermiso('turno.ver_todos'), c.obtenerTurnoPorId);
 
-//Cierre de turno
-rutasTurnos.put('/:id/cierre', verifyToken, controlador.procesarCierreTurno);
+// --- Operación del POS ---
+r.post('/:id/presencia', requirePermiso('pos.acceder'), c.registrarPresencia);
+r.put('/:id/cierre',     requirePermiso('turno.cerrar', 'turno.cerrar_si_esta_solo'), c.procesarCierreTurno);
 
-// Listado general (consumido por turnos.js)
-rutasTurnos.get('/', controlador.obtenerTurnos);
+// --- Auditoría ---
+r.patch('/:id/cierre-rapido', requirePermiso('turno.auditar'), c.cierreRapido);
+r.patch('/:id/arqueo',        requirePermiso('turno.auditar'), c.declararArqueo);
 
-// Detalle de un turno
-rutasTurnos.get('/:id', controlador.obtenerTurnoPorId);
-
-//Cierre tradicional de turno
-rutasTurnos.put('/:id/cierre', controlador.cerrarTurno)
-
-// Cierre rápido desde terminal de ventas (pasa a EN_CIERRE)
-rutasTurnos.patch('/:id/cierre-rapido', controlador.cierreRapido);
-
-// Asentar arqueo auditado desde el panel admin (pasa a CERRADO)
-rutasTurnos.patch('/:id/arqueo', controlador.declararArqueo);
-
-
-
-export default rutasTurnos;
+export default r;

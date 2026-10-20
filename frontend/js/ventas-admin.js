@@ -36,31 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnModalReceiptClose = document.getElementById('btn-modal-receipt-close');
   const btnReceiptClose = document.getElementById('btn-receipt-close');
 
-  // 1. Sesión
-  async function verificarSesion() {
-    try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-
-      if (data.user?.rol !== 'ADMINISTRADOR') {
-        alert('Acceso restringido a administradores.');
-        window.location.replace('index.html');
-        return;
-      }
-
-      userDisplay.textContent = `${data.user.nombre} ${data.user.apellido}`;
-    } catch {
-      window.location.replace('index.html');
-    }
-  }
-
   // 2. Cargar listas auxiliares para filtros
   async function cargarAuxiliares() {
     try {
       const [resSuc, resEmp] = await Promise.all([
         fetch('/api/v1/sucursales', { credentials: 'include' }),
-        fetch('/api/v1/usuarios', { credentials: 'include' })
+        fetch('/api/v1/usuarios/operadores', { credentials: 'include' })
       ]);
 
       if (resSuc.ok) sucursalesList = await resSuc.json();
@@ -383,7 +364,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicialización
   async function iniciarModulo() {
-    await verificarSesion();
+    const user = await Auth.init('ventas.ver_todas');
+    if (!user) return;
+    Auth.renderSidebar('ventas-admin.html');
+    userDisplay.textContent = `${user.nombre} ${user.apellido}`;
+
     await cargarAuxiliares();
     await cargarVentas();
   }

@@ -35,27 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnConfirmAccept = document.getElementById('btn-confirm-accept');
   const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
 
-  // 1. Verificación de sesión de Administrador
-  async function verificarSesion() {
-    try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-
-      if (data.user?.rol !== 'ADMINISTRADOR') {
-        alert('Acceso restringido a administradores.');
-        window.location.replace('index.html');
-        return;
-      }
-
-      if (userDisplay) {
-        userDisplay.textContent = `${data.user.nombre} ${data.user.apellido || ''}`;
-      }
-    } catch {
-      window.location.replace('index.html');
-    }
-  }
-
   // 2. Carga de datos auxiliares (Categorías y Proveedores)
   async function cargarAuxiliares() {
     try {
@@ -498,7 +477,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicialización Secuencial
   async function iniciarModulo() {
-    await verificarSesion();
+    const user = await Auth.init('productos.ver');
+    if (!user) return;
+    Auth.renderSidebar('productos.html');
+    userDisplay.textContent = `${user.nombre} ${user.apellido}`;
     inicializarEventosFiltros();
     await cargarAuxiliares();
     await cargarProductos();

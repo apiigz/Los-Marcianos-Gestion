@@ -1,28 +1,11 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  await verificarSesion();
+  const user = await Auth.init('admin.acceder');
+  if (!user) return;
+  Auth.renderSidebar('admin.html', 'nav-btn');
+  const el = document.getElementById('user-name');
+  if (el) el.textContent = `${user.nombre} ${user.apellido || ''}`;
   await cargarDashboardOperativo();
 });
-
-async function verificarSesion() {
-  try {
-    const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-    if (!res.ok) window.location.replace('index.html');
-    const data = await res.json();
-    
-    if (data.user?.rol !== 'ADMINISTRADOR') {
-      alert('Acceso exclusivo a administradores.');
-      window.location.replace('index.html');
-      return;
-    }
-
-    const userNameEl = document.getElementById('user-name');
-    if (userNameEl) {
-      userNameEl.textContent = `${data.user.nombre} ${data.user.apellido || ''}`;
-    }
-  } catch {
-    window.location.replace('index.html');
-  }
-}
 
 async function cargarDashboardOperativo() {
   try {

@@ -1,19 +1,13 @@
-import { Router } from "express";
-import * as controlador from "./controlador.venta.mjs";
-const rutasVenta = new Router();
-import { verifyToken, checkRole } from '../../middlewares/auth.middleware.mjs';
+import { Router } from 'express';
+import * as c from './controlador.venta.mjs';
+import { requirePermiso } from '../../middlewares/auth.middleware.mjs';
 
-rutasVenta.post('/', verifyToken, checkRole('ADMINISTRADOR', 'CAJERO'), controlador.crearUno);
+const r = new Router();
 
-//Rutas para ventas
-rutasVenta.get("/", controlador.obtenerVentas);
-rutasVenta.get("/:id", controlador.obtenerUno);
-rutasVenta.post("/", verifyToken, controlador.crearUno);
-rutasVenta.put("/:id", controlador.actualizarUno);
-rutasVenta.delete("/:id", controlador.eliminarUno);
-rutasVenta.post('/', controlador.crearUno);
-rutasVenta.get('/turno/:turnoId', controlador.obtenerPorTurno);
-rutasVenta.get('/:id/detalle', controlador.obtenerDetalle);
-rutasVenta.post('/:id/reembolso', controlador.reembolsar);
+r.post('/',               requirePermiso('venta.crear'),      c.crearUno);
+r.get('/',                requirePermiso('ventas.ver_todas'), c.obtenerVentas);
+r.get('/turno/:turnoId',  requirePermiso('pos.acceder'),      c.obtenerPorTurno);
+r.get('/:id/detalle',     requirePermiso('pos.acceder'),      c.obtenerDetalle);
+r.post('/:id/reembolso',  requirePermiso('venta.reembolsar'), c.reembolsar);
 
-export default rutasVenta;
+export default r;

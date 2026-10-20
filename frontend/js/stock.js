@@ -21,26 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalConfirmTitle = document.getElementById('modal-confirm-title');
   const modalConfirmMsg = document.getElementById('modal-confirm-message');
   const btnConfirmAccept = document.getElementById('btn-confirm-accept');
-  const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
-
-  // 1. Verificación de sesión con /api/v1/auth/me
-  async function verificarSesion() {
-    try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-
-      if (data.user?.rol !== 'ADMINISTRADOR') {
-        alert('Acceso exclusivo para administradores.');
-        window.location.replace('index.html');
-        return;
-      }
-
-      userDisplay.textContent = `${data.user.nombre} ${data.user.apellido}`;
-    } catch {
-      window.location.replace('index.html');
-    }
-  }
+  const btnConfirmCancel = document.getElementById('btn-confirm-cancel');  
 
   // 2. Cargar Sucursales y Productos en paralelo para resolver nombres
   async function cargarCatalogosBase() {
@@ -318,8 +299,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const stockItem = rawStockList.find(s => s.id === id);
       if (!stockItem) return;
 
-      const nuevaCantidad = parseInt(document.getElementById(`edit-cant-${id}`).value, 10);
-      const nuevoMinimo = parseInt(document.getElementById(`edit-min-${id}`).value, 10);
+      const nuevaCantidad = parseFloat(document.getElementById(`edit-cant-${id}`).value);
+      const nuevoMinimo = parseFloat(document.getElementById(`edit-min-${id}`).value);
 
       if (isNaN(nuevaCantidad) || isNaN(nuevoMinimo) || nuevaCantidad < 0 || nuevoMinimo < 0) {
         alert('Por favor ingrese valores numéricos válidos mayores o iguales a 0.');
@@ -339,8 +320,8 @@ document.addEventListener('DOMContentLoaded', () => {
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
               body: JSON.stringify({
-                cantidad_disponible: Number(nuevaCantidad.toFixed(1)),
-                stock_minimo: Number(nuevoMinimo.toFixed(1))
+                cantidad_disponible: nuevaCantidad,
+                stock_minimo: nuevoMinimo
               })
             });
 
@@ -395,7 +376,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicialización secuencial
   async function iniciarModulo() {
-    await verificarSesion();
+    const user = await Auth.init('stock.ver');
+    if (!user) return;
+    Auth.renderSidebar('stock.html');
+    userDisplay.textContent = `${user.nombre} ${user.apellido}`;
     await cargarCatalogosBase();
     await cargarStockSegunFiltro();
   }

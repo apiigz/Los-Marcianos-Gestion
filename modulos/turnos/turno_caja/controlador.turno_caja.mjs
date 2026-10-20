@@ -1,267 +1,143 @@
 import * as modelo from './modelo.turno_caja.mjs';
+import { ErrorHttp } from '../../utils/errores.mjs';
 
-// Función auxiliar para determinar el turno según la hora de Argentina (GMT-3)
-function calcularTurnoSegunHora() {
-  const hora = parseInt(
-    new Intl.DateTimeFormat('es-AR', {
-      hour: 'numeric',
-      hour12: false,
-      timeZone: 'America/Argentina/Cordoba'
-    }).format(new Date()),
-    10
-  );
-
-  if (hora >= 6 && hora < 14) return 'MAÑANA';
-  if (hora >= 14 && hora < 22) return 'TARDE';
-  return 'NOCHE';
+function responderError(res, e, generico) {
+  if (e instanceof ErrorHttp) {
+    return res.status(e.status).json({ error: e.message, message: e.message, codigo: e.codigo });
+  }
+  console.error(generico, e);
+  return res.status(500).json({ error: generico });
 }
 
-// GET /api/v1/turnos
+const aEntero = (v) => {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 ? n : null;
+};
+
+const aMonto = (v) => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+};
+
+// GET /turno_caja
 export const obtenerTurnos = async (req, res) => {
   try {
-    const turnos = await modelo.obtenerTodos();
-    return res.status(200).json(turnos || []);
-  } catch (error) {
-    console.error('Error al listar turnos:', error);
-    return res.status(500).json({ error: 'Error al obtener los turnos' });
-  }
+    res.json((await modelo.obtenerTodos()) || []);
+  } catch (e) { responderError(res, e, 'Error al obtener los turnos'); }
 };
 
-// GET /api/v1/turnos/:id
+// GET /turno_caja/:id
 export const obtenerTurnoPorId = async (req, res) => {
-  const { id } = req.params;
   try {
-    const turno = await modelo.obtenerPorId(Number(id));
-    if (!turno) {
-      return res.status(404).json({ error: 'Turno no encontrado' });
-    }
-    return res.status(200).json(turno);
-  } catch (error) {
-    console.error('Error al obtener turno por ID:', error);
-    return res.status(500).json({ error: 'Error interno del servidor' });
-  }
+    const id = aEntero(req.params.id);
+    if (!id) throw new ErrorHttp(400, 'ID de turno inválido.');
+    const turno = await modelo.obtenerPorId(id);
+    if (!turno) throw new ErrorHttp(404, 'Turno no encontrado');
+    res.json(turno);
+  } catch (e) { responderError(res, e, 'Error interno del servidor'); }
 };
 
-// POST /api/v1/turnos (Apertura de turno general)
-export const abrirTurnoGeneral = async (req, res) => {
-  let { caja_fisica_id, nombre_turno, monto_inicial_efectivo } = req.body;
-
+// GET /turno_caja/activo?terminal_id=X
+export const obtenerTurnoActivo = async (req, res) => {
   try {
-    if (!caja_fisica_id || monto_inicial_efectivo === undefined) {
-      return res.status(400).json({ 
-        error: 'caja_fisica_id y monto_inicial_efectivo son obligatorios' 
-      });
-    }
-
-    // Si no enviaron nombre_turno, se calcula automáticamente según la hora
-    if (!nombre_turno || String(nombre_turno).trim() === '') {
-      nombre_turno = calcularTurnoSegunHora();
-    }
-
-    // Regla de negocio: No permitir abrir un turno si la caja ya tiene uno ABIERTO o EN_CIERRE
-    const turnoExistente = await modelo.obtenerTurnoAbiertoPorCaja(Number(caja_fisica_id));
-    if (turnoExistente) {
-      return res.status(409).json({ 
-        error: `La caja ya posee el turno #${turnoExistente.id} en estado ${turnoExistente.estado}. Debe cerrarse antes de abrir uno nuevo.` 
-      });
-    }
-
-    const nuevoTurno = await modelo.abrirTurno({
-      caja_fisica_id: Number(caja_fisica_id),
-      nombre_turno: String(nombre_turno).trim(),
-      monto_inicial_efectivo: parseFloat(monto_inicial_efectivo) || 0
-    });
-
-    return res.status(201).json(nuevoTurno);
-  } catch (error) {
-    console.error('Error al abrir turno:', error);
-    return res.status(500).json({ error: error.message || 'Error al abrir el turno' });
-  }
+    const terminalId = aEntero(req.query.terminal_id);
+    if (!terminalId) throw new ErrorHttp(400, 'El parámetro terminal_id es requerido.');
+    res.json(await modelo.obtenerTurnoActivoPorTerminal(terminalId));
+  } catch (e) { responderError(res, e, 'Error al consultar el turno activo'); }
 };
 
-// PUT /api/v1/turnos/:id/cierre
-export async function cerrarTurno(req, res) {
-  const { id } = req.params;
-  const { monto_real, observaciones } = req.body;
-  const usuario_cierre_id = req.user?.id || null; // Quién está cerrando
-
-  const turnoId = parseInt(id, 10);
-  if (isNaN(turnoId) || turnoId <= 0) {
-    return res.status(400).json({ error: 'El ID del turno proporcionado no es válido.' });
-  }
-
-  if (monto_real === undefined || monto_real === null || monto_real === '') {
-    return res.status(400).json({ error: 'Debe ingresar el monto real de efectivo contado en caja.' });
-  }
-
-  const montoRealNum = parseFloat(monto_real);
-  if (isNaN(montoRealNum) || montoRealNum < 0) {
-    return res.status(400).json({ error: 'El monto real de efectivo debe ser un número mayor o igual a 0.' });
-  }
-
+// POST /turno_caja/abrir   { terminal_id, monto_inicial_efectivo }
+export const abrirTurno = async (req, res) => {
   try {
-    // Tomamos al usuario que está cerrando la caja desde la sesión
-    const usuario_cierre_id = req.user?.id ? Number(req.user.id) : null;
+    const terminalId = aEntero(req.body.terminal_id);
+    const monto = aMonto(req.body.monto_inicial_efectivo);
+    if (!terminalId) throw new ErrorHttp(400, 'terminal_id es obligatorio.');
+    if (monto === null) throw new ErrorHttp(400, 'El monto inicial debe ser un número mayor o igual a 0.');
 
-    const turnoCerrado = await modelo.cerrarTurno({
-    turno_id: parseInt(id, 10),
-    monto_real: parseFloat(monto_real),
-    observaciones: observaciones ? String(observaciones).trim() : null,
-    usuario_cierre_id
-  });
-
-    if (!turnoCerrado) {
-      return res.status(404).json({ error: `No se encontró el turno con ID ${turnoId}.` });
-    }
-
-    return res.status(200).json({
-    mensaje: 'Turno cerrado y arqueo registrado.',
-    turno: turnoCerrado
-  });
-
-  } catch (error) {
-    console.error(`Error al cerrar el turno #${turnoId}:`, error);
-    return res.status(500).json({ 
-      error: error.message || 'Error al procesar el arqueo del turno.' 
-    });
-  }
-}
-
-// PATCH /api/v1/turnos/:id/cierre-rapido (Pasa a EN_CIERRE)
-export const cierreRapido = async (req, res) => {
-  const { id } = req.params;
-  const { monto_esperado_sistema } = req.body;
-
-  try {
-    const turnoActualizado = await modelo.registrarCierreRapido(
-      Number(id),
-      monto_esperado_sistema ? parseFloat(monto_esperado_sistema) : null
-    );
-
-    if (!turnoActualizado) {
-      return res.status(400).json({ 
-        error: 'El turno no existe o no se encuentra en estado ABIERTO para efectuar un cierre rápido' 
-      });
-    }
-
-    return res.status(200).json(turnoActualizado);
-  } catch (error) {
-    console.error('Error en cierre rápido:', error);
-    return res.status(500).json({ error: 'Error al procesar el cierre rápido' });
-  }
+    const turno = await modelo.abrirTurno({ terminalId, usuarioId: req.user.id, montoInicial: monto });
+    res.status(201).json(turno);
+  } catch (e) { responderError(res, e, 'Error al abrir el turno'); }
 };
 
-// PATCH /api/v1/turnos/:id/arqueo (Utilizado por turnos.js en el panel admin)
-export const declararArqueo = async (req, res) => {
-  const { id } = req.params;
-  const { monto_real_arqueo, diferencia, estado } = req.body;
-
+// POST /turno_caja/:id/presencia   { terminal_id }   (check-in y latido)
+export const registrarPresencia = async (req, res) => {
   try {
-    if (monto_real_arqueo === undefined || isNaN(parseFloat(monto_real_arqueo))) {
-      return res.status(400).json({ error: 'Debe ingresar un monto_real_arqueo numérico válido' });
-    }
-
-    const turnoActualizado = await modelo.asentarArqueo(Number(id), {
-      monto_real_arqueo: parseFloat(monto_real_arqueo),
-      diferencia: parseFloat(diferencia),
-      estado: estado || 'CERRADO'
-    });
-
-    if (!turnoActualizado) {
-      return res.status(404).json({ error: 'Turno no encontrado para asentar arqueo' });
-    }
-
-    return res.status(200).json(turnoActualizado);
-  } catch (error) {
-    console.error('Error al declarar arqueo:', error);
-    return res.status(500).json({ error: error.message || 'Error al registrar arqueo del turno' });
-  }
+    const turnoId = aEntero(req.params.id);
+    const terminalId = aEntero(req.body.terminal_id);
+    if (!turnoId || !terminalId) throw new ErrorHttp(400, 'Faltan turno o terminal.');
+    await modelo.registrarPresencia({ turnoId, usuarioId: req.user.id, terminalId });
+    res.json({ ok: true });
+  } catch (e) { responderError(res, e, 'Error al registrar la presencia'); }
 };
 
-// GET /api/v1/turno_caja/activo?caja_fisica_id=X
-export async function obtenerTurnoActivo(req, res) {
+// POST /turno_caja/salir
+export const salir = async (req, res) => {
   try {
-    const cajaFisicaId = req.query.caja_fisica_id || req.query.caja_id;
+    await modelo.salirDelTurno(req.user.id);
+    res.json({ ok: true });
+  } catch (e) { responderError(res, e, 'Error al registrar la salida'); }
+};
 
-    if (!cajaFisicaId) {
-      return res.status(400).json({ error: 'El parámetro caja_fisica_id es requerido.' });
-    }
-
-    const turno = await modelo.obtenerTurnoActivoPorCaja(Number(cajaFisicaId));
-    return res.status(200).json(turno);
-  } catch (error) {
-    console.error('Error en obtenerTurnoActivo:', error);
-    return res.status(500).json({ error: error.message });
-  }
-}
-
-// POST /api/v1/turno_caja/abrir
-export async function abrirTurno(req, res) {
+// PUT /turno_caja/:id/cierre   { tipo: 'RAPIDO' | 'DEFINITIVO', monto_real }
+export const procesarCierreTurno = async (req, res) => {
   try {
-    let { 
-      caja_fisica_id, 
-      monto_inicial_efectivo, 
-      nombre_turno, 
-      segundo_cajero_id 
-    } = req.body;
-
-    if (!caja_fisica_id || monto_inicial_efectivo === undefined) {
-      return res.status(400).json({ 
-        error: 'caja_fisica_id y monto_inicial_efectivo son obligatorios.' 
-      });
-    }
-
-    if (typeof nombre_turno !== 'string' || !nombre_turno.trim() || nombre_turno === '{}') {
-      nombre_turno = calcularTurnoSegunHora();
-    } else {
-      nombre_turno = nombre_turno.trim().toUpperCase();
-    }
-
-    // Regla de negocio: No permitir abrir un turno si la caja ya tiene uno ABIERTO o EN_CIERRE
-    const turnoExistente = await modelo.obtenerTurnoAbiertoPorCaja(Number(caja_fisica_id));
-    if (turnoExistente) {
-      return res.status(409).json({ 
-        error: `La caja ya posee el turno #${turnoExistente.id} en estado ${turnoExistente.estado}. Debe cerrarse antes de abrir uno nuevo.` 
-      });
-    }
-
-    // El primer cajero siempre es quien inició la sesión activa
-    const usuario_apertura_id = req.user?.id ? Number(req.user.id) : null;
-
-    const nuevoTurno = await modelo.abrirTurno({
-      caja_fisica_id: Number(caja_fisica_id),
-      monto_inicial_efectivo: parseFloat(monto_inicial_efectivo),
-      nombre_turno: nombre_turno ? String(nombre_turno).trim() : undefined,
-      usuario_apertura_id,
-      segundo_cajero_id: segundo_cajero_id ? Number(segundo_cajero_id) : null
-    });
-
-    return res.status(201).json(nuevoTurno);
-  } catch (error) {
-    console.error('Error al abrir turno:', error);
-    return res.status(500).json({ error: error.message || 'Error al abrir el turno' });
-  }
-}
-
-// PUT /api/v1/turno_caja/:id/cierre
-export async function procesarCierreTurno(req, res) {
-  try {
-    const { id } = req.params;
+    const turnoId = aEntero(req.params.id);
+    if (!turnoId) throw new ErrorHttp(400, 'El ID del turno no es válido.');
     const { tipo, monto_real } = req.body;
+    const user = req.user;
 
+    // 1. Solo cierra quien participa del turno (el admin puede cerrar cualquiera)
+    if (!user.es_admin && !(await modelo.usuarioEstaEnTurno(turnoId, user.id))) {
+      throw new ErrorHttp(403, 'No participás de este turno.');
+    }
+
+    // 2. Regla del novato: solo cierra si no hay un cajero con permiso de cierre activo
+    const puedeCerrarSiempre = user.es_admin || user.permisos.includes('turno.cerrar');
+    if (!puedeCerrarSiempre) {
+      if (!user.permisos.includes('turno.cerrar_si_esta_solo')) {
+        throw new ErrorHttp(403, 'No tenés permiso para cerrar el turno.');
+      }
+      if (await modelo.hayCajeroConPermisoDeCierre(turnoId, user.id)) {
+        throw new ErrorHttp(403,
+          'Hay un cajero experimentado en el turno: debe cerrarlo él.', 'HAY_CAJERO_EXPERIMENTADO');
+      }
+    }
+
+    // 3. Cierre
+    let turno;
     if (tipo === 'RAPIDO') {
-      const turno = await modelo.cerrarTurnoRapido(Number(id));
-      return res.status(200).json(turno);
+      turno = await modelo.cerrarTurnoRapido(turnoId, user.id);
+    } else {
+      const monto = aMonto(monto_real);
+      if (monto === null) {
+        throw new ErrorHttp(400, 'Debe ingresar el efectivo contado (número mayor o igual a 0).');
+      }
+      turno = await modelo.cerrarTurnoDefinitivo(turnoId, monto, user.id);
     }
+    res.json(turno);
+  } catch (e) { responderError(res, e, 'Error al cerrar el turno'); }
+};
 
-    if (monto_real === undefined || monto_real === null || isNaN(parseFloat(monto_real))) {
-      return res.status(400).json({ error: 'Debe ingresar el efectivo contado para el cierre definitivo.' });
-    }
+// PATCH /turno_caja/:id/cierre-rapido   (admin: "Forzar cierre")
+export const cierreRapido = async (req, res) => {
+  try {
+    const turnoId = aEntero(req.params.id);
+    if (!turnoId) throw new ErrorHttp(400, 'ID de turno inválido.');
+    res.json(await modelo.cerrarTurnoRapido(turnoId, req.user.id));
+  } catch (e) { responderError(res, e, 'Error al procesar el cierre rápido'); }
+};
 
-    const turno = await modelo.cerrarTurnoDefinitivo(Number(id), monto_real);
-    return res.status(200).json(turno);
-  } catch (error) {
-    console.error('Error en cierre de turno:', error);
-    return res.status(500).json({ error: error.message });
-  }
-}
+// PATCH /turno_caja/:id/arqueo   { monto_real_arqueo }   (admin)
+export const declararArqueo = async (req, res) => {
+  try {
+    const turnoId = aEntero(req.params.id);
+    const monto = aMonto(req.body.monto_real_arqueo);
+    if (!turnoId) throw new ErrorHttp(400, 'ID de turno inválido.');
+    if (monto === null) throw new ErrorHttp(400, 'Debe ingresar un monto_real_arqueo numérico válido.');
+
+    const turno = await modelo.asentarArqueo(turnoId, monto);
+    if (!turno) throw new ErrorHttp(404, 'Turno no encontrado para asentar arqueo');
+    res.json(turno);
+  } catch (e) { responderError(res, e, 'Error al registrar el arqueo del turno'); }
+};

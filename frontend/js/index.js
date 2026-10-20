@@ -62,16 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Redirección limpia según rol del backend
-      if (data.rol === 'ADMINISTRADOR') {
-        window.location.replace('admin.html');
-      } else if (data.rol === 'CAJERO') {
-        window.location.replace('ventas.html');
-      } else {
-        alert(`Rol no reconocido: ${data.rol}`);
-        btnSubmit.disabled = false;
-        btnSubmit.style.opacity = '1';
-        btnSubmit.innerHTML = btnTextoOriginal;
-      }
+        if (data.permisos.includes('admin.acceder')) location.replace('admin.html');
+        else if (data.permisos.includes('pos.acceder')) location.replace('ventas.html');
+        else alert('Tu rol no tiene acceso a ninguna sección.');
 
     } catch (error) {
       console.error('Error al iniciar sesión:', error);

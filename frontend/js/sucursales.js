@@ -28,25 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnConfirmAccept = document.getElementById('btn-confirm-accept');
   const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
 
-  // 1. Verificación de sesión
-  async function verificarSesion() {
-    try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-
-      if (data.user?.rol !== 'ADMINISTRADOR') {
-        alert('Acceso exclusivo para administradores.');
-        window.location.replace('index.html');
-        return;
-      }
-
-      userDisplay.textContent = `${data.user.nombre} ${data.user.apellido}`;
-    } catch {
-      window.location.replace('index.html');
-    }
-  }
-
   // 2. Carga de Sucursales
   async function cargarSucursales() {
     try {
@@ -365,7 +346,13 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#039;');
   }
 
-  // Inicialización
-  verificarSesion();
-  cargarSucursales();
+  async function iniciarModulo() {
+    const user = await Auth.init('sucursales.gestionar');
+    if (!user) return;
+    Auth.renderSidebar('sucursales.html');
+    userDisplay.textContent = `${user.nombre} ${user.apellido}`;
+    await cargarSucursales();
+  }
+
+  iniciarModulo();
 });

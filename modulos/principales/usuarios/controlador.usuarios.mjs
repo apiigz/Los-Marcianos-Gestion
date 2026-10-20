@@ -143,3 +143,13 @@ export const cambiarEstado = async (req, res) => {
     return res.status(500).json({ error: error.message || 'Error interno al cambiar estado' });
   }
 };
+
+//La lista minima
+export async function obtenerOperadores(req, res) {
+    try {
+        res.json(await modelo.obtenerOperadores());
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al obtener los operadores' });
+    }
+}

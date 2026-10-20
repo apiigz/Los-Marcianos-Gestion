@@ -3,10 +3,17 @@
 // ==========================================
 let sesionActual = null;
 let turnoActivoGlobal = null;
+let terminalActual = null;   // { id, nombre, caja_fisica_id, sucursal_id, sucursal_nombre, caja_nombre }
 let cajaIdTerminal = null;
 let carrito = [];
 let debounceTimeout = null;
 let modoDevolucionActivo = false;
+let latidoTimer = null;
+
+let config = { debito: 10, credito: 10, maximo: 15, puede_cambiar_recargo: false };
+const redondear = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+
+const INTERVALO_LATIDO_MS = 60 * 1000;
 
 // Elementos DOM
 const userDisplay = document.getElementById('user-display');
@@ -68,6 +75,11 @@ const btnConfirmarFiado = document.getElementById('btn-confirmar-fiado');
 const selectEmpleadoFiado = document.getElementById('select-empleado-fiado');
 const fiadoTotalDisplay = document.getElementById('fiado-total-display');
 
+const modalTerminal = document.getElementById('modal-terminal');
+const selectTerminal = document.getElementById('select-terminal');
+const btnConfirmarTerminal = document.getElementById('btn-confirmar-terminal');
+const btnCambiarTerminal = document.getElementById('btn-cambiar-terminal');
+
 // ==========================================
 // 1. INICIALIZACIÓN
 // ==========================================
@@ -78,59 +90,151 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function iniciarTerminal() {
   try {
-    const resAuth = await fetch('/api/v1/auth/me', { credentials: 'include' });
-    if (!resAuth.ok) {
-      window.location.replace('index.html');
-      return;
-    }
-    const dataAuth = await resAuth.json();
-    sesionActual = dataAuth.user;
+    const user = await Auth.init('pos.acceder');
+    if (!user) return;
+    sesionActual = user;
 
-    if (sesionActual.rol !== 'CAJERO' && sesionActual.rol !== 'ADMINISTRADOR') {
-      alert('Acceso restringido a personal de caja.');
-      window.location.replace('index.html');
-      return;
-    }
-
-    if (userDisplay) {
-      userDisplay.textContent = `${sesionActual.nombre} ${sesionActual.apellido || ''}`;
-    }
+    if (userDisplay) userDisplay.textContent = `${user.nombre} ${user.apellido || ''}`;
     if (userAvatar) {
-      const iniciales = `${sesionActual.nombre?.[0] || ''}${sesionActual.apellido?.[0] || ''}`.toUpperCase();
+      const iniciales = `${user.nombre?.[0] || ''}${user.apellido?.[0] || ''}`.toUpperCase();
       userAvatar.textContent = iniciales || 'US';
     }
 
-    cajaIdTerminal = sesionActual.caja_fisica_id || localStorage.getItem('pos_caja_id') || 1;
-    if (terminalBadge) {
-      terminalBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>Caja #${cajaIdTerminal}`;
-    }
-
+    await resolverTerminal();
+    await cargarConfigPOS();
     await verificarTurnoAlIniciar();
   } catch (error) {
     console.error('Error al inicializar terminal:', error);
-    window.location.replace('index.html');
+    alert(error.message || 'No se pudo iniciar la terminal. Recargá la página.');
   }
 }
 
-async function verificarTurnoAlIniciar() {
+// ----- Terminal ligada a la PC -----
+async function resolverTerminal() {
+  const res = await fetch('/api/v1/terminal', { credentials: 'include' });
+  if (!res.ok) throw new Error('No se pudo obtener la lista de terminales.');
+  const lista = await res.json();
+  if (!lista.length) throw new Error('No hay terminales configuradas. Avisale al administrador.');
+
+  const guardado = Number(localStorage.getItem('pos_terminal_id'));
+  terminalActual = lista.find(t => t.id === guardado) || null;
+
+  if (!terminalActual) {
+    terminalActual = await pedirTerminal(lista);
+    localStorage.setItem('pos_terminal_id', String(terminalActual.id));
+  }
+  localStorage.removeItem('pos_caja_id');   // clave vieja, ya no se usa
+  cajaIdTerminal = terminalActual.caja_fisica_id;
+  pintarBadgeTerminal();
+}
+
+function pedirTerminal(lista) {
+  return new Promise((resolve) => {
+    selectTerminal.innerHTML = lista.map(t =>
+      `<option value="${t.id}">${escapeHtml(t.sucursal_nombre)} · ${escapeHtml(t.caja_nombre)} · ${escapeHtml(t.nombre)}</option>`
+    ).join('');
+    modalTerminal.classList.remove('hidden');
+    btnConfirmarTerminal.onclick = () => {
+      const t = lista.find(x => x.id === Number(selectTerminal.value));
+      if (!t) return;
+      modalTerminal.classList.add('hidden');
+      resolve(t);
+    };
+  });
+}
+
+function pintarBadgeTerminal() {
+  if (!terminalBadge || !terminalActual) return;
+  terminalBadge.innerHTML =
+    `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>` +
+    `${escapeHtml(terminalActual.sucursal_nombre)} · ${escapeHtml(terminalActual.nombre)}`;
+}
+
+btnCambiarTerminal?.addEventListener('click', async () => {
+  if (!confirm('¿Cambiar la terminal asignada a esta PC? Vas a tener que elegirla de nuevo.')) return;
+  try { await fetch('/api/v1/turno_caja/salir', { method: 'POST', credentials: 'include' }); } catch {}
+  localStorage.removeItem('pos_terminal_id');
+  location.reload();
+});
+
+// ----- Presencia (latido) -----
+async function enviarPresencia() {
+  if (!turnoActivoGlobal || !terminalActual) return true;
   try {
-    const res = await fetch(`/api/v1/turno_caja/activo?caja_fisica_id=${cajaIdTerminal}`, { credentials: 'include' });
+    const res = await fetch(`/api/v1/turno_caja/${turnoActivoGlobal.id}/presencia`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ terminal_id: terminalActual.id })
+    });
+    if (res.ok) return true;
+    const err = await res.json().catch(() => ({}));
+    await manejarErrorPresencia(err);
+    return false;
+  } catch {
+    return true;   // sin internet: no molestar al cajero, el próximo latido reintenta
+  }
+}
+
+async function manejarErrorPresencia(err) {
+  detenerLatido();
+
+  if (err.codigo === 'TURNO_NO_ABIERTO') {
+    alert('El turno fue cerrado (por otro cajero o por un administrador). Se cancela la venta en curso.');
+    turnoActivoGlobal = null;
+    carrito = [];
+    renderizarCarrito();
+    await verificarTurnoAlIniciar();
+    return;
+  }
+
+  if (err.codigo === 'TERMINAL_EN_USO' || err.codigo === 'TERMINAL_INVALIDA') {
+    alert(`${err.error || 'Terminal no disponible.'}\nElegí otra terminal.`);
+    localStorage.removeItem('pos_terminal_id');
+    location.reload();
+    return;
+  }
+
+  alert(err.error || 'No se pudo registrar tu presencia en el turno.');
+}
+
+async function iniciarPresencia() {
+  detenerLatido();
+  const ok = await enviarPresencia();
+  if (ok) latidoTimer = setInterval(enviarPresencia, INTERVALO_LATIDO_MS);
+  return ok;
+}
+
+function detenerLatido() {
+  if (latidoTimer) clearInterval(latidoTimer);
+  latidoTimer = null;
+}
+
+// ----- Turno -----
+async function verificarTurnoAlIniciar() {
+  detenerLatido();
+  try {
+    const res = await fetch(`/api/v1/turno_caja/activo?terminal_id=${terminalActual.id}`, { credentials: 'include' });
     const turno = res.ok ? await res.json() : null;
 
-    if (turno && turno.id && (turno.estado === 'ABIERTO' || turno.estado === 'EN_CIERRE')) {
+    if (turno?.estado === 'EN_CIERRE') {
+      alert('El turno anterior de esta caja está pendiente de arqueo. Un administrador debe auditarlo antes de abrir uno nuevo.');
+      await Auth.logout();
+      return;
+    }
+
+    if (turno?.id && turno.estado === 'ABIERTO') {
       turnoActivoGlobal = turno;
-      if (modalApertura) modalApertura.classList.add('hidden');
-      searchInput?.focus();
+      modalApertura?.classList.add('hidden');
+      if (await iniciarPresencia()) searchInput?.focus();
     } else {
       turnoActivoGlobal = null;
-      if (modalApertura) {
-        modalApertura.classList.remove('hidden');
-        setTimeout(() => inputAperturaMonto?.focus(), 100);
-      }
+      modalApertura?.classList.remove('hidden');
+      setTimeout(() => inputAperturaMonto?.focus(), 100);
     }
   } catch (err) {
     console.error('Error al verificar turno:', err);
-    if (modalApertura) modalApertura.classList.remove('hidden');
+    modalApertura?.classList.remove('hidden');
   }
 }
 
@@ -152,11 +256,7 @@ formApertura?.addEventListener('submit', async (e) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({
-        caja_fisica_id: Number(cajaIdTerminal),
-        monto_inicial_efectivo: monto
-        // Se omitió nombre_turno: el backend lo calcula de inmediato según la hora
-      })
+      body: JSON.stringify({ terminal_id: terminalActual.id, monto_inicial_efectivo: monto })
     });
 
     if (!res.ok) {
@@ -166,6 +266,7 @@ formApertura?.addEventListener('submit', async (e) => {
 
     turnoActivoGlobal = await res.json();
     modalApertura.classList.add('hidden');
+    await iniciarPresencia();
     searchInput?.focus();
     alert(`Turno #${turnoActivoGlobal.id} (${turnoActivoGlobal.nombre_turno}) abierto correctamente.`);
   } catch (err) {
@@ -217,9 +318,9 @@ async function procesarCierre(payload) {
       throw new Error(err.error || 'Error al cerrar el turno.');
     }
 
-    alert('Turno cerrado exitosamente.');
-    await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
-    window.location.replace('index.html');
+    detenerLatido();
+    alert('Turno cerrado exitosamente. Si había otro cajero en la caja, su pantalla le va a pedir abrir un turno nuevo.');
+    await Auth.logout();
   } catch (err) {
     alert(err.message);
   }
@@ -369,6 +470,36 @@ function renderizarCarrito() {
 }
 
 // ==========================================
+// RECARGOS CONFIGURABLES
+// ==========================================
+async function cargarConfigPOS() {
+  const res = await fetch('/api/v1/configuracion/pos', { credentials: 'include' });
+  if (!res.ok) throw new Error('No se pudo cargar la configuración de recargos.');
+  config = await res.json();
+
+  const iD = document.getElementById('pct-debito');
+  const iC = document.getElementById('pct-credito');
+  if (iD) { iD.value = config.debito;  iD.max = config.maximo; }
+  if (iC) { iC.value = config.credito; iC.max = config.maximo; }
+}
+
+// Porcentaje vigente para 'debito' | 'credito'
+function pctRecargo(medio) {
+  const def = config[medio];
+  if (!config.puede_cambiar_recargo) return def;
+  const el = document.getElementById(`pct-${medio}`);
+  const v = parseFloat(el?.value);
+  return Number.isFinite(v) ? Math.min(Math.max(v, 0), config.maximo) : def;
+}
+
+function actualizarEtiquetasRecargo(pD, pC) {
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set('lbl-pct-debito', pD);
+  set('lbl-pct-credito', pC);
+  set('txt-recargos', `Recargo débito ${pD}% · crédito ${pC}%`);
+}
+
+// ==========================================
 // 5. CÁLCULO DE TOTALES Y VUELTO
 // ==========================================
 function parseInput(id) {
@@ -405,19 +536,23 @@ function recalcularTotales() {
   }
 
   // Venta Normal
-  btnFacturarText.textContent = 'Facturar';
+   btnFacturarText.textContent = 'Facturar';
   const baseEf = parseInput('efectivo');
   const baseDeb = parseInput('debito');
   const baseCred = parseInput('credito');
   const baseQr = parseInput('qr');
 
-  const recargoDeb = parseFloat((baseDeb * 0.10).toFixed(2));
-  const recargoCred = parseFloat((baseCred * 0.10).toFixed(2));
-  const recargosTotales = parseFloat((recargoDeb + recargoCred).toFixed(2));
+  const pD = pctRecargo('debito');
+  const pC = pctRecargo('credito');
+  actualizarEtiquetasRecargo(pD, pC);
 
-  const totalAPagar = parseFloat((subtotal + recargosTotales).toFixed(2));
-  const totalIngresado = parseFloat((baseEf + (baseDeb + recargoDeb) + (baseCred + recargoCred) + baseQr).toFixed(2));
-  const diferencia = parseFloat((totalIngresado - totalAPagar).toFixed(2));
+  const recargoDeb = redondear(baseDeb * pD / 100);
+  const recargoCred = redondear(baseCred * pC / 100);
+  const recargosTotales = redondear(recargoDeb + recargoCred);
+
+  const totalAPagar = redondear(subtotal + recargosTotales);
+  const totalIngresado = redondear(baseEf + (baseDeb + recargoDeb) + (baseCred + recargoCred) + baseQr);
+  const diferencia = redondear(totalIngresado - totalAPagar);
 
   cellSubtotal.textContent = `$ ${subtotal.toFixed(2)}`;
   labelRecargo.textContent = `$ ${recargosTotales.toFixed(2)}`;
@@ -487,31 +622,25 @@ btnFacturar?.addEventListener('click', async () => {
   const subtotal = carrito.reduce((acc, item) => acc + (Number(item.cantidad) * Number(item.precio_unitario)), 0);
   const esDevolucion = subtotal < 0;
 
-  let pagosArray = [];
-  let tipoOperacion = 'VENTA';
-
-  if (esDevolucion) {
-    pagosArray.push({ forma_pago: 'EFECTIVO', monto: subtotal });
-    tipoOperacion = 'DEVOLUCION_PARCIAL';
-  } else {
+  // El servidor recalcula todo. Acá solo se manda lo que el cajero decidió.
+  const pagosArray = [];
+  if (!esDevolucion) {
     const ef = parseInput('efectivo');
     const deb = parseInput('debito');
     const cred = parseInput('credito');
     const qr = parseInput('qr');
 
-    if (ef > 0) pagosArray.push({ forma_pago: 'EFECTIVO', monto: ef });
-    if (deb > 0) pagosArray.push({ forma_pago: 'DEBITO', monto: deb });
-    if (cred > 0) pagosArray.push({ forma_pago: 'CREDITO', monto: cred });
-    if (qr > 0) pagosArray.push({ forma_pago: 'QR', monto: qr });
+    if (ef > 0)   pagosArray.push({ forma_pago: 'EFECTIVO', monto: ef });
+    if (deb > 0)  pagosArray.push({ forma_pago: 'DEBITO',   monto: deb,  recargo_porcentaje: pctRecargo('debito') });
+    if (cred > 0) pagosArray.push({ forma_pago: 'CREDITO',  monto: cred, recargo_porcentaje: pctRecargo('credito') });
+    if (qr > 0)   pagosArray.push({ forma_pago: 'QR',       monto: qr });
   }
 
   const payload = {
     turno_caja_id: turnoActivoGlobal.id,
-    terminal_id: sesionActual.terminal_id || 1,
-    total: subtotal,
-    articulos: carrito,
-    pagos: pagosArray,
-    tipo_operacion: tipoOperacion
+    terminal_id: terminalActual.id,
+    articulos: carrito.map(i => ({ producto_id: i.id, cantidad: i.cantidad })),
+    pagos: pagosArray
   };
 
   try {
@@ -521,8 +650,7 @@ btnFacturar?.addEventListener('click', async () => {
       credentials: 'include',
       body: JSON.stringify(payload)
     });
-
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if (res.ok) {
       alert(esDevolucion ? '¡Reintegro registrado en caja!' : '¡Venta registrada con éxito!');
@@ -532,10 +660,19 @@ btnFacturar?.addEventListener('click', async () => {
       Object.values(payInputs).forEach(i => { if (i) i.value = ''; });
       recalcularTotales();
       searchInput?.focus();
-    } else {
-      alert(data.error || 'Error al procesar la operación.');
-      btnFacturar.disabled = false;
+      return;
     }
+
+    if (data.codigo === 'TURNO_NO_ABIERTO') {
+      alert('El turno fue cerrado. Se cancela la venta en curso.');
+      carrito = [];
+      renderizarCarrito();
+      await verificarTurnoAlIniciar();
+      return;
+    }
+
+    alert(data.error || 'Error al procesar la operación.');
+    btnFacturar.disabled = false;
   } catch (error) {
     console.error('Error al facturar:', error);
     alert('Error de conexión con el servidor.');
@@ -669,7 +806,7 @@ async function renderizarContenidoDetalle(ventaId, esReembolsada, esDevolucion) 
       footerHtml = `<div class="text-red-400 font-bold text-right pt-2">Esta venta fue anulada y reembolsada.</div>`;
     } else if (esDevolucion) {
       footerHtml = `<div class="text-amber-400 font-bold text-right pt-2">Comprobante de reintegro por devolución.</div>`;
-    } else {
+    } else if(Auth.can('venta.reembolsar')) {
       footerHtml = `
         <div class="flex justify-end pt-2 border-t border-slate-800">
           <button type="button" onclick="solicitarReembolso(${ventaId})" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded font-bold transition-colors">
@@ -677,6 +814,9 @@ async function renderizarContenidoDetalle(ventaId, esReembolsada, esDevolucion) 
           </button>
         </div>
       `;
+    }
+    else{
+      footerHtml = '';
     }
 
     contenedor.innerHTML = itemsHtml + footerHtml;
@@ -689,7 +829,12 @@ window.solicitarReembolso = async function(ventaId) {
   if (!confirm(`¿Confirma el reembolso completo del Ticket #${ventaId}?\nEl dinero saldrá de la gaveta actual y los productos regresarán al stock.`)) return;
 
   try {
-    const res = await fetch(`/api/v1/ventas/${ventaId}/reembolso`, { method: 'POST', credentials: 'include' });
+    const res = await fetch(`/api/v1/ventas/${ventaId}/reembolso`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ terminal_id: terminalActual.id })
+    });
     const data = await res.json();
 
     if (!res.ok) {
@@ -699,7 +844,6 @@ window.solicitarReembolso = async function(ventaId) {
 
     alert('Venta reembolsada con éxito.');
     await cargarHistorialTurno();
-    await verificarTurnoAlIniciar();
   } catch (err) {
     alert('Error al procesar el reembolso: ' + err.message);
   }
@@ -723,7 +867,7 @@ btnCancelarFiado?.addEventListener('click', () => modalFiado.classList.add('hidd
 async function cargarListaEmpleadosParaFiado() {
   selectEmpleadoFiado.innerHTML = '';
   try {
-    const res = await fetch('/api/v1/usuarios', { credentials: 'include' });
+    const res = await fetch('/api/v1/usuarios/operadores', { credentials: 'include' });
     if (res.ok) {
       const usuarios = await res.json();
       usuarios.forEach(u => {
@@ -745,14 +889,11 @@ async function cargarListaEmpleadosParaFiado() {
 
 btnConfirmarFiado?.addEventListener('click', async () => {
   const empleadoId = Number(selectEmpleadoFiado.value);
-  const subtotal = carrito.reduce((acc, item) => acc + (Number(item.cantidad) * Number(item.precio_unitario)), 0);
 
   const payload = {
     turno_caja_id: turnoActivoGlobal.id,
-    terminal_id: sesionActual.terminal_id || 1,
-    total: subtotal,
-    articulos: carrito,
-    pagos: [{ medio_pago: 'QR/Transf', monto: subtotal, recargo: 0 }],
+    terminal_id: terminalActual.id,
+    articulos: carrito.map(i => ({ producto_id: i.id, cantidad: i.cantidad })),
     empleado_fiado_id: empleadoId
   };
 
@@ -789,13 +930,14 @@ function configurarEventosUI() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'F2') {
       e.preventDefault();
-      toggleModoDevolucion();
+      if (Auth.can('venta.devolucion')) toggleModoDevolucion();
     }
+
     if (e.key === 'F4') {
       e.preventDefault();
       btnVerHistorial?.click();
     }
-    if (e.key === 'F8' && !btnFiado?.disabled) {
+    if (e.key === 'F8' && !btnFiado?.disabled && Auth.can('venta.fiado')) {
       e.preventDefault();
       btnFiado?.click();
     }
@@ -821,28 +963,33 @@ function configurarEventosUI() {
   });
 
   searchInput?.addEventListener('keydown', async (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const codigo = searchInput.value.trim();
-      if (!codigo) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    clearTimeout(debounceTimeout); 
+    const codigo = searchInput.value.trim();
 
-      try {
-        const res = await fetch(`/api/v1/productos/codigo/${encodeURIComponent(codigo)}`);
-        if (!res.ok) {
-          alert('Producto no encontrado o inactivo');
-          searchInput.value = '';
-          return;
-        }
-
-        const producto = await res.json();
-        agregarAlCarrito(producto);
-        searchInput.value = '';
-        ocultarSugerencias();
-      } catch (error) {
-        console.error('Error al pistolear código:', error);
-      }
+    if (codigo.length < 2 || /^\d{6,}$/.test(codigo)) {
+      ocultarSugerencias();
+      return;
     }
-  });
+
+    try {
+      const res = await fetch(`/api/v1/productos/codigo/${encodeURIComponent(codigo)}`, { credentials: 'include' });
+      if (!res.ok) {
+        alert('Producto no encontrado o inactivo');
+        searchInput.value = '';
+        return;
+      }
+
+      const producto = await res.json();
+      agregarAlCarrito(producto);
+      searchInput.value = '';
+      ocultarSugerencias();
+    } catch (error) {
+      console.error('Error al pistolear código:', error);
+    }
+  }
+});
 
   searchInput?.addEventListener('input', () => {
     const query = searchInput.value.trim();
@@ -855,9 +1002,14 @@ function configurarEventosUI() {
 
     debounceTimeout = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v1/productos/buscar?q=${encodeURIComponent(query)}`);
+        const res = await fetch(`/api/v1/productos/buscar?q=${encodeURIComponent(query)}`, { credentials: 'include' });
+        if (!res.ok) {
+          console.error('Búsqueda rechazada:', res.status);
+          ocultarSugerencias();
+          return;
+        }
         const productos = await res.json();
-        mostrarSugerencias(productos);
+        mostrarSugerencias(Array.isArray(productos) ? productos : []);
       } catch (err) {
         console.error('Error en sugerencias:', err);
       }
@@ -867,6 +1019,9 @@ function configurarEventosUI() {
   Object.values(payInputs).forEach(inp => {
     if (inp) inp.addEventListener('input', recalcularTotales);
   });
+
+    ['pct-debito', 'pct-credito'].forEach(id =>
+    document.getElementById(id)?.addEventListener('input', recalcularTotales));
 
   document.addEventListener('click', (e) => {
     if (!searchInput?.contains(e.target) && !suggestionsList?.contains(e.target)) {
@@ -936,7 +1091,7 @@ window.cambiarCantidadManual = function(index, valor) {
   const esPesable = (item.unidad_medida || '').toUpperCase() === 'KILO' || (item.unidad_medida || '').toUpperCase() === 'KG';
   const num = parseFloat(valor);
 
-  if (!isNaN(num) && num !== 0) {
+  if (!isNaN(num) && num !== 0 && Auth.can('venta.devolucion')) {
     item.cantidad = esPesable ? Number(num.toFixed(3)) : Math.round(num);
   }
   renderizarCarrito();
@@ -947,30 +1102,10 @@ window.eliminarFila = function(index) {
   renderizarCarrito();
 };
 
-window.cerrarSesion = async function() {
-  await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
-  window.location.replace('index.html');
-};
+window.cerrarSesion = () => Auth.logout();
 
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text || '';
   return div.innerHTML;
-}
-
-async function actualizarContadorTicketTurno() {
-  const labelTicket = document.getElementById('label-ticket-actual');
-  if (!labelTicket || !turnoActivoGlobal) return;
-
-  try {
-    const res = await fetch(`/api/v1/ventas/turno/${turnoActivoGlobal.id}`, { credentials: 'include' });
-    if (!res.ok) return;
-    const ventas = await res.json();
-    
-    // El siguiente ticket es la cantidad de ventas del turno + 1
-    const proximoTicket = ventas.length + 1;
-    labelTicket.textContent = `#${proximoTicket}`;
-  } catch (err) {
-    console.error('Error al actualizar número de ticket:', err);
-  }
 }

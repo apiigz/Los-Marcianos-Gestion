@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
+import {cargarUsuarioConPermisos} from '../auth/auth.modelo.mjs';
 import { encontrarUsuarioParaAuth } from '../principales/usuarios/modelo.usuarios.mjs';
 
 export const login = async (req, res) => {
@@ -39,9 +40,9 @@ export const login = async (req, res) => {
     };
 
     // 5. Firmar el token
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '2h'
-    });
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '12h' });
+    
+
 
     // 6. Setear cookie httpOnly firmada
     res.cookie('token', token, {
@@ -53,10 +54,8 @@ export const login = async (req, res) => {
     });
 
     // 7. Retornar solo el rol y datos necesarios para la redirección en el front
-    return res.json({
-      message: 'Inicio de sesión exitoso',
-      rol: user.rol
-    });
+    const completo = await cargarUsuarioConPermisos(user.id);
+    return res.json({ message: 'Inicio de sesión exitoso', rol: completo.rol, permisos: completo.permisos });
 
   } catch (error) {
     console.error('Error en login:', error);

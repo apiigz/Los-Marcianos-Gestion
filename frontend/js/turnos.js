@@ -48,27 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnConfirmAccept = document.getElementById('btn-confirm-accept');
   const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
 
-  // 1. Verificación de sesión de Administrador
-  async function verificarSesion() {
-    try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-
-      if (data.user?.rol !== 'ADMINISTRADOR') {
-        alert('Acceso restringido a administradores.');
-        window.location.replace('index.html');
-        return;
-      }
-
-      if (userDisplay) {
-        userDisplay.textContent = `${data.user.nombre} ${data.user.apellido || ''}`;
-      }
-    } catch {
-      window.location.replace('index.html');
-    }
-  }
-
   // 2. Cargar datos de sucursales para el filtro
   async function cargarSucursales() {
     try {
@@ -470,7 +449,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicio secuencial
   async function iniciarModulo() {
-    await verificarSesion();
+    const user = await Auth.init('turno.ver_todos');
+    if (!user) return;
+    Auth.renderSidebar('turnos.html');
+    userDisplay.textContent = `${user.nombre} ${user.apellido}`;
+
     await cargarSucursales();
     await cargarTurnos();
   }

@@ -1,183 +1,117 @@
 import pool from "../../bd/conexion.bd.mjs";
 import { ajustarStock } from "../../productos/stock_sucursal/modelo.stock_sucursal.mjs";
+import { ErrorHttp } from "../../utils/errores.mjs";
 
-//Obtener todas las ventas
-export async function obtenerTodos(){
-    const resultado = await pool.query("SELECT * FROM venta");
-    return resultado.rows;
-}
+const MEDIO_ENUM = {
+  EFECTIVO: 'EFECTIVO',
+  DEBITO: 'DEBITO',
+  CREDITO: 'CREDITO',
+  QR: 'QR/Transf',
+  FIADO_EMPLEADO: 'EFECTIVO'   // el fiado no mueve caja: se distingue por cuenta_corriente_empleado
+};
 
-//Obtener una venta por id
-export async function obtenerUno(id){
-    const resultado = await pool.query("SELECT * FROM venta WHERE id = $1", [id]);
-    return resultado.rows[0];
-}
-
-//Crear una venta
-export async function crearUno(dato){
-    const resultado = await pool.query
-    ("INSERT INTO venta (turno_caja_id, terminal_id, usuario_id, fecha_hora, total) VALUES ($1, $2, $3, $4, $5) RETURNING *", 
-        [dato.turno_caja_id, dato.terminal_id, dato.usuario_id, dato.fecha_hora, dato.total]);
-    return resultado.rows[0];
-}
-
-//Actualizar una venta por id
-export async function actualizarUno(id, dato){
-    const resultado = await pool.query
-    ("UPDATE venta SET turno_caja_id = $1, terminal_id = $2, usuario_id = $3, fecha_hora = $4, total = $5 WHERE id = $6 RETURNING *", 
-        [dato.turno_caja_id, dato.terminal_id, dato.usuario_id, dato.fecha_hora, dato.total, id]);
-    return resultado.rows[0];
-}
-
-//Eliminar una venta por id
-export async function eliminarUno(id){
-    const resultado = await pool.query("DELETE FROM venta WHERE id = $1 RETURNING *", [id]);
-    return resultado.rows[0];
-}
 
 //Registrar una venta, con detalles y medio de pago
-export async function crearVentaTransaccional({ 
-  turno_caja_id, 
-  terminal_id, 
-  usuario_id, 
-  total, 
-  articulos, 
-  pagos, 
-  empleado_fiado_id = null,
-  tipo_operacion = 'VENTA'
+export async function crearVentaTransaccional({
+  turno_caja_id, terminal_id, usuario_id, total, articulos, pagos,
+  empleado_fiado_id = null, tipo_operacion = 'VENTA'
 }) {
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
-    // 1. Obtener la sucursal asignada
-    const resSucursal = await client.query(`
-      SELECT COALESCE(t.sucursal_id, cf.sucursal_id) AS sucursal_id
-      FROM terminal t
-      LEFT JOIN caja_fisica cf ON t.caja_fisica_id = cf.id
-      WHERE t.id = $1;
-    `, [terminal_id]);
+    // 1. Turno y terminal: el turno debe estar ABIERTO y ser de la caja de esta terminal.
+    //    FOR UPDATE serializa las ventas concurrentes sobre el mismo turno.
+    const { rows: chk } = await client.query(`
+      SELECT tc.estado, tc.caja_fisica_id, t.caja_fisica_id AS caja_terminal, t.sucursal_id
+      FROM turno_caja tc
+      JOIN terminal t ON t.id = $2
+      WHERE tc.id = $1
+      FOR UPDATE OF tc`, [turno_caja_id, terminal_id]);
 
-    if (resSucursal.rowCount === 0 || !resSucursal.rows[0].sucursal_id) {
-      throw new Error(`No se pudo resolver la sucursal para la terminal ID ${terminal_id}`);
+    if (!chk[0]) throw new ErrorHttp(404, 'Turno o terminal inexistente.');
+    if (chk[0].estado !== 'ABIERTO') throw new ErrorHttp(409, 'El turno ya no está abierto.', 'TURNO_NO_ABIERTO');
+    if (chk[0].caja_fisica_id !== chk[0].caja_terminal) {
+      throw new ErrorHttp(409, 'La terminal no corresponde a la caja del turno.', 'TERMINAL_INVALIDA');
     }
-    const sucursalId = resSucursal.rows[0].sucursal_id;
+    const sucursalId = chk[0].sucursal_id;
 
-    // 2. Insertar registro en venta
+    // 2. Empleado del fiado
+    if (empleado_fiado_id) {
+      const emp = await client.query('SELECT 1 FROM usuario WHERE id = $1 AND activo = true', [empleado_fiado_id]);
+      if (!emp.rowCount) throw new ErrorHttp(400, 'El empleado elegido para el fiado no existe o está inactivo.');
+    }
+
+    // 3. Cabecera
     const resVenta = await client.query(`
-      INSERT INTO venta (turno_caja_id, terminal_id, usuario_id, fecha_hora, total, tipo_operacion) 
-      VALUES ($1, $2, $3, NOW(), $4, $5) 
-      RETURNING id, fecha_hora, total, tipo_operacion;
-    `, [
-      turno_caja_id, 
-      terminal_id, 
-      usuario_id, 
-      Number(parseFloat(total).toFixed(2)),
-      tipo_operacion
-    ]);
-
+      INSERT INTO venta (turno_caja_id, terminal_id, usuario_id, fecha_hora, total, tipo_operacion)
+      VALUES ($1, $2, $3, NOW(), $4, $5)
+      RETURNING id, fecha_hora, total, tipo_operacion;`,
+      [turno_caja_id, terminal_id, usuario_id, total, tipo_operacion]);
     const ventaId = resVenta.rows[0].id;
 
-    // 3. Insertar renglones y actualizar inventario
-    const queryDetalle = `
-      INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, alicuota_iva, subtotal) 
-      VALUES ($1, $2, $3, $4, $5, $6);
-    `;
+    // 4. Renglones + stock (los combos descuentan sus ingredientes)
+    for (const l of articulos) {
+      await client.query(`
+        INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario, alicuota_iva, subtotal)
+        VALUES ($1, $2, $3, $4, $5, $6);`,
+        [ventaId, l.producto_id, l.cantidad, l.precio_unitario, l.alicuota_iva, l.subtotal]);
 
-    for (const art of articulos) {
-      const idProducto = art.producto_id || art.id;
-      const cantidad = parseFloat(art.cantidad) || 0;
-      const precioUnitario = parseFloat(art.precio_unitario) || 0;
-      const subtotalItem = Number((cantidad * precioUnitario).toFixed(2));
-      const alicuota = art.alicuota_iva !== undefined ? parseFloat(art.alicuota_iva) : 21.00;
-
-      await client.query(queryDetalle, [
-        ventaId,
-        idProducto,
-        cantidad,
-        precioUnitario,
-        alicuota,
-        subtotalItem
-      ]);
-
-      // Verificar si es combo/promo
       const resCombo = await client.query(
         'SELECT producto_ingrediente_id, cantidad FROM combo_item WHERE combo_producto_id = $1',
-        [idProducto]
-      );
+        [l.producto_id]);
 
-      // Si cantidad es positiva (venta normal), se resta del stock (-cantidad).
-      // Si cantidad es negativa (devolución F2 o reintegro de envase), se reincorpora al stock (-(-cantidad) = +cantidad).
+      // cantidad > 0 resta stock; cantidad < 0 (devolución) lo repone
       if (resCombo.rowCount > 0) {
         for (const ing of resCombo.rows) {
-          const delta = Number((parseFloat(ing.cantidad) * cantidad).toFixed(3));
+          const delta = Number((parseFloat(ing.cantidad) * l.cantidad).toFixed(3));
           await ajustarStock(sucursalId, ing.producto_ingrediente_id, -delta, client);
         }
       } else {
-        await ajustarStock(sucursalId, idProducto, -Number(cantidad.toFixed(3)), client);
+        await ajustarStock(sucursalId, l.producto_id, -l.cantidad, client);
       }
     }
 
-    // 4. Registrar en pago_venta
-    let totalEfectivo = 0;
-    let totalDebito = 0;
-    let totalCredito = 0;
-    let totalQr = 0;
-    let esFiado = Boolean(empleado_fiado_id);
-
-    const queryPago = `
-      INSERT INTO pago_venta (venta_id, medio_pago, monto, recargo) 
-      VALUES ($1, $2, $3, $4);
-    `;
+    // 5. Pagos y acumulados esperados del turno
+    const esFiado = Boolean(empleado_fiado_id);
+    let totalEfectivo = 0, totalDebito = 0, totalCredito = 0, totalQr = 0;
 
     for (const p of pagos) {
-      const medioRaw = String(p.medio_pago || p.forma_pago || '').toUpperCase().trim();
-      const montoBase = Number(parseFloat(p.monto || 0).toFixed(2));
-      const recargo = Number(parseFloat(p.recargo || 0).toFixed(2));
-      const totalMedio = Number((montoBase + recargo).toFixed(2));
+      const medioEnum = MEDIO_ENUM[p.medio_pago];
+      if (!medioEnum) throw new ErrorHttp(400, `Medio de pago desconocido: ${p.medio_pago}`);
 
-      let medioEnum = 'EFECTIVO';
-      if (medioRaw.includes('DEBITO') || medioRaw.includes('DÉBITO')) {
-        medioEnum = 'DEBITO';
-        totalDebito += totalMedio;
-      } else if (medioRaw.includes('CREDITO') || medioRaw.includes('CRÉDITO')) {
-        medioEnum = 'CREDITO';
-        totalCredito += totalMedio;
-      } else if (medioRaw.includes('QR') || medioRaw.includes('TRANSFERENCIA')) {
-        medioEnum = 'QR/Transf';
-        totalQr += totalMedio;
-      } else if (medioRaw.includes('FIADO')) {
-        medioEnum = 'EFECTIVO';
-        esFiado = true;
-      } else {
-        medioEnum = 'EFECTIVO';
-        if (!esFiado) totalEfectivo += totalMedio;
-      }
+      await client.query(`
+        INSERT INTO pago_venta (venta_id, medio_pago, monto, recargo, recargo_porcentaje, recargo_modificado_por)
+        VALUES ($1, $2, $3, $4, $5, $6);`,
+        [ventaId, medioEnum, p.monto, p.recargo, p.recargo_porcentaje ?? 0, p.modificado_por ?? null]);
 
-      await client.query(queryPago, [ventaId, medioEnum, montoBase, recargo]);
+      const totalMedio = Number((p.monto + p.recargo).toFixed(2));
+      if (p.medio_pago === 'EFECTIVO') totalEfectivo += totalMedio;
+      else if (p.medio_pago === 'DEBITO') totalDebito += totalMedio;
+      else if (p.medio_pago === 'CREDITO') totalCredito += totalMedio;
+      else if (p.medio_pago === 'QR') totalQr += totalMedio;
     }
 
-    // 5. Asentar fiado en cuenta corriente si aplica
-    if (esFiado && empleado_fiado_id) {
+    // 6. Fiado → cuenta corriente del empleado (no toca la caja)
+    if (esFiado) {
       await client.query(`
         INSERT INTO cuenta_corriente_empleado (empleado_id, venta_id, monto, fecha_hora)
-        VALUES ($1, $2, $3, NOW());
-      `, [empleado_fiado_id, ventaId, total]);
+        VALUES ($1, $2, $3, NOW());`, [empleado_fiado_id, ventaId, total]);
+    } else {
+      await client.query(`
+        UPDATE turno_caja SET
+          monto_esperado_sistema = COALESCE(monto_esperado_sistema, 0) + $1,
+          total_esperado_debito  = COALESCE(total_esperado_debito, 0)  + $2,
+          total_esperado_credito = COALESCE(total_esperado_credito, 0) + $3,
+          total_esperado_qr      = COALESCE(total_esperado_qr, 0)      + $4
+        WHERE id = $5;`, [totalEfectivo, totalDebito, totalCredito, totalQr, turno_caja_id]);
     }
 
-    // 6. Impactar en el arqueo del turno_caja
-    if (!esFiado) {
-      await client.query(`
-        UPDATE turno_caja 
-        SET 
-          monto_esperado_sistema = COALESCE(monto_esperado_sistema, 0) + $1,
-          total_esperado_debito  = COALESCE(total_esperado_debito, 0) + $2,
-          total_esperado_credito = COALESCE(total_esperado_credito, 0) + $3,
-          total_esperado_qr      = COALESCE(total_esperado_qr, 0) + $4
-        WHERE id = $5;
-      `, [totalEfectivo, totalDebito, totalCredito, totalQr, turno_caja_id]);
-    }
+    // 7. Cada venta cuenta como señal de vida del cajero (regla del novato)
+    await client.query(`
+      UPDATE turno_cajero SET ultima_actividad = now()
+      WHERE turno_caja_id = $1 AND usuario_id = $2 AND egreso IS NULL;`, [turno_caja_id, usuario_id]);
 
     await client.query('COMMIT');
     return resVenta.rows[0];
@@ -223,97 +157,86 @@ export async function obtenerDetalleVenta(venta_id) {
   };
 }
 
-// Reembolso total de un ticket ya asentado
-export async function reembolsarVentaTransaccional(venta_id) {
+// Reembolso total de un ticket. El efectivo sale del turno ABIERTO de la terminal que lo hace.
+export async function reembolsarVentaTransaccional(venta_id, terminal_id) {
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
-    const resVenta = await client.query(`
-      SELECT id, turno_caja_id, terminal_id, total, estado
-      FROM venta
-      WHERE id = $1
-      FOR UPDATE;
-    `, [venta_id]);
+    // 1. Turno abierto de la caja de ESTA terminal (ahí impacta la salida de efectivo)
+    const resTurno = await client.query(`
+      SELECT tc.id, t.sucursal_id
+      FROM terminal t
+      JOIN turno_caja tc ON tc.caja_fisica_id = t.caja_fisica_id AND tc.estado = 'ABIERTO'
+      WHERE t.id = $1
+      FOR UPDATE OF tc`, [terminal_id]);
+    if (!resTurno.rowCount) throw new ErrorHttp(409, 'No hay un turno abierto en esta terminal.');
+    const turnoActualId = resTurno.rows[0].id;
+    const sucursalTerminal = resTurno.rows[0].sucursal_id;
 
-    if (resVenta.rowCount === 0) throw new Error('La venta no existe.');
+    // 2. La venta
+    const resVenta = await client.query(`
+      SELECT v.id, v.estado, v.tipo_operacion, t.sucursal_id
+      FROM venta v JOIN terminal t ON t.id = v.terminal_id
+      WHERE v.id = $1
+      FOR UPDATE OF v`, [venta_id]);
+    if (!resVenta.rowCount) throw new ErrorHttp(404, 'La venta no existe.');
     const venta = resVenta.rows[0];
 
-    if (venta.estado === 'REEMBOLSADA') {
-      throw new Error('Esta venta ya fue reembolsada con anterioridad.');
+    if (venta.estado === 'REEMBOLSADA') throw new ErrorHttp(409, 'Esta venta ya fue reembolsada con anterioridad.');
+    if (venta.tipo_operacion !== 'VENTA') throw new ErrorHttp(409, 'Solo se pueden reembolsar ventas, no devoluciones.');
+    if (venta.sucursal_id !== sucursalTerminal) {
+      throw new ErrorHttp(409, 'Solo se puede reembolsar en la sucursal donde se realizó la venta.');
     }
+    const sucursalId = venta.sucursal_id;
 
-    const resSucursal = await client.query(`
-      SELECT COALESCE(t.sucursal_id, cf.sucursal_id) AS sucursal_id
-      FROM terminal t
-      LEFT JOIN caja_fisica cf ON t.caja_fisica_id = cf.id
-      WHERE t.id = $1;
-    `, [venta.terminal_id]);
-    const sucursalId = resSucursal.rows[0].sucursal_id;
+    // 3. Medios de pago: bloquear tarjeta; el fiado no mueve efectivo
+    const esFiado = (await client.query(
+      'SELECT 1 FROM cuenta_corriente_empleado WHERE venta_id = $1', [venta_id])).rowCount > 0;
 
-    // Verificar medios de pago: Bloquear si se usó tarjeta o QR
-    const resPagos = await client.query(`SELECT medio_pago, monto_total FROM pago_venta WHERE venta_id = $1;`, [venta_id]);
+    const resPagos = await client.query(
+      'SELECT medio_pago, monto_total FROM pago_venta WHERE venta_id = $1', [venta_id]);
     let totalEfectivoReembolso = 0;
-    let tieneElectronicos = false;
-
     for (const p of resPagos.rows) {
-      if (p.medio_pago === 'EFECTIVO') {
-        totalEfectivoReembolso += parseFloat(p.monto_total);
-      } else if (p.medio_pago === 'DEBITO' || p.medio_pago === 'CREDITO') {
-        tieneElectronicos = true;
+      if (p.medio_pago === 'DEBITO' || p.medio_pago === 'CREDITO') {
+        throw new ErrorHttp(409, 'No es posible reembolsar desde la terminal ventas abonadas con Débito o Crédito. Comuníquese con el encargado.');
       }
+      if (p.medio_pago === 'EFECTIVO' && !esFiado) totalEfectivoReembolso += parseFloat(p.monto_total);
     }
 
-    if (tieneElectronicos) {
-      throw new Error('No es posible reembolsar desde la terminal ventas abonadas con Débito o Crédito. Comuníquese con el encargado.');
-    }
-
-    // Reintegrar mercadería al stock disponible
-    const resDetalles = await client.query(`SELECT producto_id, cantidad FROM detalle_venta WHERE venta_id = $1;`, [venta_id]);
+    // 4. Devolver la mercadería al stock
+    const resDetalles = await client.query(
+      'SELECT producto_id, cantidad FROM detalle_venta WHERE venta_id = $1', [venta_id]);
     for (const art of resDetalles.rows) {
       const cantidad = parseFloat(art.cantidad);
-
       const resCombo = await client.query(
         'SELECT producto_ingrediente_id, cantidad FROM combo_item WHERE combo_producto_id = $1',
-        [art.producto_id]
-      );
+        [art.producto_id]);
 
       if (resCombo.rowCount > 0) {
         for (const ing of resCombo.rows) {
           const delta = Number((parseFloat(ing.cantidad) * cantidad).toFixed(3));
-          await client.query(`
-            UPDATE stock_sucursal 
-            SET cantidad_disponible = cantidad_disponible + $1
-            WHERE sucursal_id = $2 AND producto_id = $3;
-          `, [delta, sucursalId, ing.producto_ingrediente_id]);
+          await ajustarStock(sucursalId, ing.producto_ingrediente_id, delta, client);
         }
       } else {
-        await client.query(`
-          UPDATE stock_sucursal 
-          SET cantidad_disponible = cantidad_disponible + $1
-          WHERE sucursal_id = $2 AND producto_id = $3;
-        `, [cantidad, sucursalId, art.producto_id]);
+        await ajustarStock(sucursalId, art.producto_id, Number(cantidad.toFixed(3)), client);
       }
     }
 
-    // Descontar la salida de efectivo de la caja física
+    // 5. Salida de efectivo en el turno ACTUAL (no en el de la venta original)
     if (totalEfectivoReembolso > 0) {
-      await client.query(`
-        UPDATE turno_caja
-        SET monto_esperado_sistema = GREATEST(0, monto_esperado_sistema - $1)
-        WHERE id = $2;
-      `, [totalEfectivoReembolso, venta.turno_caja_id]);
+      await client.query(
+        'UPDATE turno_caja SET monto_esperado_sistema = monto_esperado_sistema - $1 WHERE id = $2',
+        [totalEfectivoReembolso, turnoActualId]);
     }
 
-    // Anular fiado si correspondía
-    await client.query(`DELETE FROM cuenta_corriente_empleado WHERE venta_id = $1;`, [venta_id]);
-
-    // Marcar como reembolsada
-    await client.query(`UPDATE venta SET estado = 'REEMBOLSADA' WHERE id = $1;`, [venta_id]);
+    // 6. Anular el fiado y marcar la venta
+    await client.query('DELETE FROM cuenta_corriente_empleado WHERE venta_id = $1', [venta_id]);
+    await client.query("UPDATE venta SET estado = 'REEMBOLSADA' WHERE id = $1", [venta_id]);
 
     await client.query('COMMIT');
-    return { ok: true, venta_id };
+    return { ok: true, venta_id, turno_id: turnoActualId };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

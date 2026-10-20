@@ -64,25 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cuitSuf.value = cuitSuf.value.replace(/\D/g, '');
   });
 
-  // 1. Sesión
-  async function verificarSesion() {
-    try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-
-      if (data.user?.rol !== 'ADMINISTRADOR') {
-        alert('Acceso restringido a administradores.');
-        window.location.replace('index.html');
-        return;
-      }
-
-      userDisplay.textContent = `${data.user.nombre} ${data.user.apellido}`;
-    } catch {
-      window.location.replace('index.html');
-    }
-  }
-
   // 2. Cargar proveedores
   async function cargarProveedores() {
     try {
@@ -380,7 +361,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicio
   async function iniciarModulo() {
-    await verificarSesion();
+    const user = await Auth.init('productos.ver|proveedores.gestionar');
+    if (!user) return;
+    Auth.renderSidebar('proveedores.html');
+    userDisplay.textContent = `${user.nombre} ${user.apellido}`;
+    await cargarCategorias();
     await cargarProveedores();
   }
 

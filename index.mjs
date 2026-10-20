@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import cookieParser from 'cookie-parser'
 import { fileURLToPath } from 'url'
 import path from 'path'
+import { verifyToken, requirePermiso } from './modulos/middlewares/auth.middleware.mjs'
 
 import rutasAuth from './modulos/auth/auth.rutas.mjs'
 import rutasCategorias from './modulos/principales/categorias/rutas.categorias.mjs'
@@ -18,6 +19,7 @@ import rutasStockSucursales from './modulos/productos/stock_sucursal/rutas.stock
 import rutasTurnos from './modulos/turnos/turno_caja/rutas.turno_caja.mjs'
 import rutasEstadisticas from './modulos/estadisticas/rutas.estadisticas.mjs'
 import rutasDashboard from './modulos/dashboard/rutas.dashboard.mjs'
+import rutasConfiguracion from './modulos/configuracion/rutas.configuracion.mjs'
 
 const app = express()
 dotenv.config()
@@ -30,27 +32,27 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(cookieParser(process.env.COOKIE_SECRET))
 app.use(express.urlencoded({ extended: true }));
 
-const puerto = process.env.BD_PORT || 3000
+const puerto = process.env.PORT || 3000
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
-app.use('/api/v1/categorias', rutasCategorias)
-app.use('/api/v1/roles', rutasRoles)
-app.use('/api/v1/usuarios', rutasUsuarios)
-app.use('/api/v1/auth', rutasAuth)
-app.use('/api/v1/venta', rutasVenta)
-app.use('/api/v1/caja_fisica', rutasCajaFisica)
-app.use('/api/v1/terminal', rutasTerminal)
-app.use('/api/v1/productos', rutasProductos)
-app.use('/api/v1/proveedores', rutasProveedores)
-app.use('/api/v1/sucursales', rutasSucursales)
-app.use('/api/v1/stock_sucursal', rutasStockSucursales)
-app.use('/api/v1/turno_caja', rutasTurnos)
-app.use('/api/v1/ventas', rutasVenta)
-app.use('/api/v1/estadisticas', rutasEstadisticas)
-app.use('/api/v1/dashboard', rutasDashboard)
+app.use('/api/v1/auth',          rutasAuth)
+app.use('/api/v1/categorias',    verifyToken, rutasCategorias)
+app.use('/api/v1/roles',         verifyToken, rutasRoles)
+app.use('/api/v1/usuarios',      verifyToken, rutasUsuarios)
+app.use('/api/v1/caja_fisica',   verifyToken, rutasCajaFisica)
+app.use('/api/v1/terminal',      verifyToken, rutasTerminal)
+app.use('/api/v1/productos',     verifyToken, rutasProductos)
+app.use('/api/v1/proveedores',   verifyToken, rutasProveedores)
+app.use('/api/v1/sucursales',    verifyToken, rutasSucursales)
+app.use('/api/v1/stock_sucursal',verifyToken, rutasStockSucursales)
+app.use('/api/v1/turno_caja',    verifyToken, rutasTurnos)
+app.use('/api/v1/ventas',        verifyToken, rutasVenta)
+app.use('/api/v1/configuracion', verifyToken, rutasConfiguracion)
+app.use('/api/v1/estadisticas',  verifyToken, requirePermiso('estadisticas.ver'), rutasEstadisticas)
+app.use('/api/v1/dashboard',     verifyToken, requirePermiso('admin.acceder'), rutasDashboard)
 
 app.listen(puerto, () => {
   console.log(`Servidor escuchando en el puerto ${puerto}`)

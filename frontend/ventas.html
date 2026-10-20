@@ -69,7 +69,7 @@
           </div>
         </div>
 
-        <button id="btn-toggle-modo" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400" title="Modo Devolución (F2)">
+        <button id="btn-toggle-modo" data-permiso="venta.devolucion" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400" title="Modo Devolución (F2)">
           <svg class="w-4 h-4 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
           </svg>
@@ -84,11 +84,17 @@
           <span class="hidden sm:inline">HISTORIAL TURNO</span>
         </button>
 
-        <button id="btn-cierre-turno-pos" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-500 text-white transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400" title="Efectuar cierre de turno">
+        <button id="btn-cierre-turno-pos" data-permiso="turno.cerrar|turno.cerrar_si_esta_solo" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-500 text-white transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400" title="Efectuar cierre de turno">
           <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
           </svg>
           <span class="hidden sm:inline">CIERRE DE TURNO</span>
+        </button>
+
+        <button id="btn-cambiar-terminal" type="button" data-permiso="pos.cambiar_terminal"
+          class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-black/25 hover:bg-black/35 text-slate-200 hover:text-white border border-white/20 transition-all focus:outline-none"
+          title="Cambiar la terminal asignada a esta PC">
+          <span class="hidden sm:inline">Cambiar terminal</span>
         </button>
 
         <button type="button" onclick="cerrarSesion()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-black/25 hover:bg-black/35 text-slate-200 hover:text-white border border-white/20 transition-all focus:outline-none" title="Cerrar sesión actual">
@@ -174,12 +180,7 @@
             </svg>
             <h2 class="text-base font-bold text-slate-900 tracking-tight">Medios de Pago</h2>
           </div>
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-            </svg>
-            10% recargo en Débito y Crédito
-          </span>
+          <span id="txt-recargos">Recargo débito 10% · crédito 10%</span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -199,18 +200,32 @@
           </div>
 
           <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide" for="pay-debito">Débito (+10%)</label>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide" for="pay-debito">
+              Débito (+<span id="lbl-pct-debito">10</span>%)
+            </label>
             <div class="relative rounded-lg shadow-2xs">
               <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span class="text-slate-400 font-mono font-medium">$</span></div>
               <input id="pay-debito" type="number" min="0" step="any" placeholder="0.00" class="block w-full rounded-lg border-slate-200 pl-8 pr-3 py-2 text-sm font-mono text-slate-600 bg-slate-50/50 focus:border-emerald-500 focus:ring-emerald-500"/>
             </div>
+            <div data-permiso="venta.cambiar_recargo" class="flex items-center gap-1.5 pt-1">
+              <label for="pct-debito" class="text-[11px] text-slate-500">Recargo %</label>
+              <input id="pct-debito" type="number" min="0" step="0.5"
+                    class="w-20 rounded border-slate-200 py-0.5 px-2 text-xs font-mono">
+            </div>
           </div>
 
           <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide" for="pay-credito">Crédito (+10%)</label>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide" for="pay-credito">
+              Crédito (+<span id="lbl-pct-credito">10</span>%)
+            </label>
             <div class="relative rounded-lg shadow-2xs">
               <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span class="text-slate-400 font-mono font-medium">$</span></div>
               <input id="pay-credito" type="number" min="0" step="any" placeholder="0.00" class="block w-full rounded-lg border-slate-200 pl-8 pr-3 py-2 text-sm font-mono text-slate-600 bg-slate-50/50 focus:border-emerald-500 focus:ring-emerald-500"/>
+            </div>
+            <div data-permiso="venta.cambiar_recargo" class="flex items-center gap-1.5 pt-1">
+              <label for="pct-credito" class="text-[11px] text-slate-500">Recargo %</label>
+              <input id="pct-credito" type="number" min="0" step="0.5"
+                    class="w-20 rounded border-slate-200 py-0.5 px-2 text-xs font-mono">
             </div>
           </div>
 
@@ -295,7 +310,7 @@
       </button>
 
       <!-- Botón Cargar al Fiado -->
-      <button id="btn-fiado" type="button" disabled class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed">
+      <button id="btn-fiado" data-permiso="venta.fiado" type="button" disabled class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed">
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
@@ -406,6 +421,22 @@
     </div>
   </div>
 
+  <!-- MODAL: ELEGIR TERMINAL (una vez por PC) -->
+  <div id="modal-terminal" class="fixed inset-0 z-[60] hidden bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-full max-w-sm p-6">
+      <h3 class="text-lg font-bold text-slate-900">Asignar terminal a esta PC</h3>
+      <p class="text-xs text-slate-500 mt-1">Se hace una sola vez. Elegí la terminal física donde estás parado.</p>
+      <div class="mt-4">
+        <label for="select-terminal" class="block text-xs font-bold text-slate-700 uppercase mb-1">Terminal:</label>
+        <select id="select-terminal" class="w-full rounded-lg border-slate-200 text-sm py-2 focus:border-emerald-500 focus:ring-emerald-500 bg-white"></select>
+      </div>
+      <button id="btn-confirmar-terminal" type="button"
+              class="mt-5 w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-sm transition-colors">
+        USAR ESTA TERMINAL
+      </button>
+    </div>
+  </div>  
+
   <!-- MODAL: CIERRE DE TURNO -->
   <div id="modal-cierre-turno-pos" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-full max-w-md p-6">
@@ -430,7 +461,7 @@
       </div>
     </div>
   </div>
-
+  <script src="js/auth.js"></script>
   <script src="js/ventas.js"></script>
 </body>
 </html>

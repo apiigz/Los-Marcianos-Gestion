@@ -49,12 +49,53 @@ export async function actualizarUno(req, res){
 }
 
 //Eliminar un rol por id
-export async function eliminarUno(req, res){
-    const { id } = req.params;
-    try {
-        const rolEliminado = await modelo.eliminarUno(id);
-        res.json(rolEliminado);
-    } catch (error) {
-        res.status(500).json({ error: 'Error al eliminar el rol' });
+export async function eliminarUno(req, res) {
+  try {
+    const rol = await modelo.obtenerUno(req.params.id);
+    if (!rol) return res.status(404).json({ error: 'Rol no encontrado' });
+    if (rol.es_sistema) return res.status(403).json({ error: 'Los roles del sistema no se pueden eliminar.' });
+    res.json(await modelo.eliminarUno(rol.id));
+  } catch (e) {
+    if (e.code === '23503') return res.status(409).json({ error: 'Hay usuarios asignados a este rol.' });
+    console.error(e);
+    res.status(500).json({ error: 'Error al eliminar el rol' });
+  }
+}
+
+//
+
+export async function obtenerCatalogo(req, res) {
+  try { res.json(await modelo.obtenerCatalogoPermisos()); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'Error al obtener el catálogo' }); }
+}
+
+export async function obtenerPermisos(req, res) {
+  try {
+    const rol = await modelo.obtenerUno(req.params.id);
+    if (!rol) return res.status(404).json({ error: 'Rol no encontrado' });
+    const permisos = rol.es_admin
+      ? (await modelo.obtenerCatalogoPermisos()).map(p => p.codigo)
+      : await modelo.obtenerPermisosDeRol(rol.id);
+    res.json({ rol: { id: rol.id, nombre: rol.nombre, es_admin: rol.es_admin }, permisos });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Error al obtener permisos' }); }
+}
+
+export async function guardarPermisos(req, res) {
+  const { permisos } = req.body;
+  if (!Array.isArray(permisos) || permisos.some(p => typeof p !== 'string')) {
+    return res.status(400).json({ error: 'Formato inválido: se espera { permisos: [..] }' });
+  }
+  try {
+    const rol = await modelo.obtenerUno(req.params.id);
+    if (!rol) return res.status(404).json({ error: 'Rol no encontrado' });
+    if (rol.es_admin) {
+      return res.status(400).json({ error: 'El administrador siempre tiene todos los permisos.' });
     }
+    await modelo.reemplazarPermisosDeRol(rol.id, [...new Set(permisos)]);
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.code === '23503') return res.status(400).json({ error: 'Se envió un permiso inexistente.' });
+    console.error(e);
+    res.status(500).json({ error: 'Error al guardar permisos' });
+  }
 }

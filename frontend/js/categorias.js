@@ -20,26 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const btnConfirmCancel = document.getElementById('btn-confirm-cancel')
   const btnConfirmAccept = document.getElementById('btn-confirm-accept')
-  // 1. Validar sesión con /api/v1/auth/me
-  async function verificarSesion() {
-    try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
 
-      if (data.user?.rol !== 'ADMINISTRADOR') {
-        alert('Acceso exclusivo para administradores.');
-        window.location.replace('index.html');
-        return;
-      }
-
-      userDisplay.textContent = `${data.user.nombre} ${data.user.apellido}`;
-    } catch {
-      window.location.replace('index.html');
-    }
-  }
-
-  // 2. Cargar listado de categorías
   async function cargarCategorias() {
     try {
       const res = await fetch('/api/v1/categorias', { credentials: 'include' });
@@ -309,7 +290,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicialización secuencial
   async function iniciarModulo() {
-    await verificarSesion();
+    const user = await Auth.init('productos.ver|categorias.gestionar');
+    if (!user) return;
+    Auth.renderSidebar('categorias.html');
+    userDisplay.textContent = `${user.nombre} ${user.apellido}`;
     await cargarCategorias();
   }
 

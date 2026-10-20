@@ -1,171 +1,127 @@
 import * as modelo from './modelo.venta.mjs';
+import * as modeloProductos from '../../productos/productos/modelo.productos.mjs';
+import * as modeloConfig from '../../configuracion/modelo.configuracion.mjs';
+import { ErrorHttp } from '../../utils/errores.mjs';
+import { calcularPagos, redondear } from './calculo.venta.mjs';
 
-//Obtener todas las ventas
-export async function obtenerTodos(req, res){
-    try{
-        const resultado = await modelo.obtenerTodos();
-        res.json(resultado);
-    }catch(error){
-        console.error(error);
-        res.status(500).json({ error: 'Error al obtener las ventas' });
-    }
-}
-
-//Obtener una venta por id
-export async function obtenerUno(req, res){
-    const { id } = req.params;
-    try{
-        const resultado = await modelo.obtenerUno(id);
-        res.json(resultado);
-    }catch(error){
-        console.error(error);
-        res.status(500).json({ error: 'Error al obtener la venta' });
-    }
-}
-
-//Crear una venta
-export async function crearUnoooo(req, res){
-    const dato = req.body;
-    try{
-        const resultado = await modelo.crearVentaTransaccional(dato);
-        res.status(201).json(resultado);
-    }catch(error){
-        console.error(error);
-        res.status(500).json({ error: 'Error al crear la venta' });
-    }
-}
-
-//Actualizar una venta por id
-export async function actualizarUno(req, res){
-    const { id } = req.params;
-    const dato = req.body;
-    try{
-        const resultado = await modelo.actualizarUno(id, dato);
-        res.json(resultado);
-    }catch(error){
-        console.error(error);
-        res.status(500).json({ error: 'Error al actualizar la venta' });
-    }
-}
-
-//Eliminar una venta por id
-export async function eliminarUno(req, res){
-    const { id } = req.params;
-    try{
-        const resultado = await modelo.eliminarUno(id);
-        res.json(resultado);
-    }catch(error){
-        console.error(error);
-        res.status(500).json({ error: 'Error al eliminar la venta' });
-    }
-}
-
-export const crearUno = async (req, res) => {
-  try {
-    const { turno_caja_id, terminal_id, articulos, pagos, empleado_fiado_id, tipo_operacion } = req.body;
-    const usuario_id = req.user?.id || req.body.usuario_id;
-
-    if (!articulos || !Array.isArray(articulos) || articulos.length === 0) {
-      return res.status(400).json({ error: 'Debe ingresar al menos un artículo.' });
-    }
-
-    if (!turno_caja_id || !terminal_id) {
-      return res.status(400).json({ error: 'Faltan parámetros de turno y terminal.' });
-    }
-
-    const subtotalArticulos = Number(
-      articulos.reduce((acum, item) => {
-        const cantidad = parseFloat(item.cantidad) || 0;
-        const precio = parseFloat(item.precio_unitario) || 0;
-        return acum + (Math.round(cantidad * precio * 100) / 100);
-      }, 0).toFixed(2)
-    );
-
-    let pagosNormalizados = [];
-    let montoEfectivo = 0, montoDebito = 0, montoCredito = 0, montoQR = 0, montoFiado = 0;
-
-    if (Array.isArray(pagos)) {
-      pagos.forEach(p => {
-        const medio = String(p.forma_pago || p.medio_pago || '').toUpperCase();
-        const m = parseFloat(p.monto) || 0;
-        if (medio === 'FIADO_EMPLEADO') montoFiado += m;
-        else if (medio.includes('EFECTIVO')) montoEfectivo += m;
-        else if (medio.includes('DEBITO')) montoDebito += m;
-        else if (medio.includes('CREDITO')) montoCredito += m;
-        else if (medio.includes('QR')) montoQR += m;
-      });
-    }
-
-    const recargoDebito = parseFloat((montoDebito * 0.10).toFixed(2));
-    const recargoCredito = parseFloat((montoCredito * 0.10).toFixed(2));
-    const totalGeneral = parseFloat((subtotalArticulos + recargoDebito + recargoCredito).toFixed(2));
-
-    if (montoFiado > 0 || empleado_fiado_id) {
-      pagosNormalizados = [{ medio_pago: 'FIADO_EMPLEADO', monto: subtotalArticulos, recargo: 0 }];
-    } else {
-      pagosNormalizados = [
-        { medio_pago: 'EFECTIVO', monto: montoEfectivo, recargo: 0 },
-        { medio_pago: 'DEBITO', monto: montoDebito, recargo: recargoDebito },
-        { medio_pago: 'CREDITO', monto: montoCredito, recargo: recargoCredito },
-        { medio_pago: 'QR', monto: montoQR, recargo: 0 }
-      ].filter(p => p.monto !== 0);
-    }
-
-    const nuevaVenta = await modelo.crearVentaTransaccional({
-      turno_caja_id: Number(turno_caja_id),
-      terminal_id: Number(terminal_id),
-      usuario_id: Number(usuario_id),
-      total: (montoFiado > 0 || empleado_fiado_id) ? subtotalArticulos : totalGeneral,
-      articulos,
-      pagos: pagosNormalizados,
-      empleado_fiado_id: empleado_fiado_id ? Number(empleado_fiado_id) : null,
-      tipo_operacion: tipo_operacion || 'VENTA'
-    });
-
-    return res.status(201).json({ message: 'Operación registrada con éxito', venta: nuevaVenta });
-  } catch (error) {
-    console.error('Error en controlador de ventas:', error);
-    return res.status(500).json({ error: error.message || 'Error al procesar la venta' });
+function responderError(res, e, generico) {
+  if (e instanceof ErrorHttp) {
+    return res.status(e.status).json({ error: e.message, message: e.message, codigo: e.codigo });
   }
-};
+  console.error(generico, e);
+  return res.status(500).json({ error: generico });
+}
 
-//Obtener ventas... avanzado, no sé como decirle
+// GET /ventas  (historial completo del admin)
 export const obtenerVentas = async (req, res) => {
   try {
-    const ventas = await modelo.obtenerVentasCompletas();
-    return res.status(200).json(ventas || []);
-  } catch (error) {
-    console.error('Error al listar ventas:', error);
-    return res.status(500).json({ error: 'Error al obtener el historial de ventas' });
-  }
+    res.status(200).json((await modelo.obtenerVentasCompletas()) || []);
+  } catch (e) { responderError(res, e, 'Error al obtener el historial de ventas'); }
 };
 
+// GET /ventas/turno/:turnoId
 export const obtenerPorTurno = async (req, res) => {
   try {
-    const { turnoId } = req.params;
-    const ventas = await modelo.obtenerVentasPorTurno(Number(turnoId));
-    res.status(200).json(ventas);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    res.status(200).json(await modelo.obtenerVentasPorTurno(Number(req.params.turnoId)));
+  } catch (e) { responderError(res, e, 'Error al obtener las ventas del turno'); }
 };
 
+// GET /ventas/:id/detalle
 export const obtenerDetalle = async (req, res) => {
   try {
-    const { id } = req.params;
-    const detalle = await modelo.obtenerDetalleVenta(Number(id));
-    res.status(200).json(detalle);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(200).json(await modelo.obtenerDetalleVenta(Number(req.params.id)));
+  } catch (e) { responderError(res, e, 'Error al obtener el detalle'); }
+};
+
+// POST /ventas
+// Body: { turno_caja_id, terminal_id, articulos: [{producto_id, cantidad}], pagos: [...], empleado_fiado_id? }
+export const crearUno = async (req, res) => {
+  try {
+    const { turno_caja_id, terminal_id, articulos, pagos = [], empleado_fiado_id } = req.body;
+    const user = req.user;
+    const puede = (p) => user.es_admin || user.permisos.includes(p);
+
+    if (!Array.isArray(articulos) || articulos.length === 0) {
+      throw new ErrorHttp(400, 'Debe ingresar al menos un artículo.');
+    }
+    if (!Number.isInteger(Number(turno_caja_id)) || !Number.isInteger(Number(terminal_id))) {
+      throw new ErrorHttp(400, 'Faltan parámetros de turno y terminal.');
+    }
+
+    // 1) Precios e IVA desde la base
+    const ids = [...new Set(articulos.map(a => Number(a.producto_id ?? a.id)))];
+    if (ids.some(id => !Number.isInteger(id) || id <= 0)) throw new ErrorHttp(400, 'Producto inválido en el carrito.');
+    const productos = new Map((await modeloProductos.obtenerPorIds(ids)).map(p => [p.id, p]));
+
+    let hayDevolucion = false;
+    const lineas = articulos.map(a => {
+      const p = productos.get(Number(a.producto_id ?? a.id));
+      if (!p || !p.activo) throw new ErrorHttp(400, 'Hay un producto inexistente o inactivo en el carrito.');
+
+      const cantidad = Number(parseFloat(a.cantidad).toFixed(3));
+      if (!Number.isFinite(cantidad) || cantidad === 0) throw new ErrorHttp(400, 'Cantidad inválida.');
+      if (cantidad < 0) hayDevolucion = true;
+
+      const precio = Number(p.precio_minorista);
+      return {
+        producto_id: p.id,
+        cantidad,
+        precio_unitario: precio,
+        alicuota_iva: Number(p.alicuota_iva),
+        subtotal: redondear(cantidad * precio)
+      };
+    });
+
+    if (hayDevolucion && !puede('venta.devolucion')) {
+      throw new ErrorHttp(403, 'No tenés permiso para registrar devoluciones.');
+    }
+
+    const subtotal = redondear(lineas.reduce((acc, l) => acc + l.subtotal, 0));
+    if (subtotal === 0) throw new ErrorHttp(400, 'El total no puede ser cero.');
+
+    // 2) Pagos y total
+    let pagosFinal, total, tipoOperacion = 'VENTA';
+
+    if (empleado_fiado_id) {
+      if (!puede('venta.fiado')) throw new ErrorHttp(403, 'No tenés permiso para cargar al fiado.');
+      if (subtotal < 0) throw new ErrorHttp(400, 'No se puede fiar una devolución.');
+      total = subtotal;
+      pagosFinal = [{ medio_pago: 'FIADO_EMPLEADO', monto: subtotal, recargo: 0, recargo_porcentaje: 0 }];
+    } else if (subtotal < 0) {
+      total = subtotal;
+      tipoOperacion = 'DEVOLUCION_PARCIAL';
+      pagosFinal = [{ medio_pago: 'EFECTIVO', monto: subtotal, recargo: 0, recargo_porcentaje: 0 }];
+    } else {
+      const cfg = await modeloConfig.obtenerRecargos();
+      ({ pagosFinal, total } = calcularPagos({ subtotal, pagos, cfg, userId: user.id, puede }));
+    }
+
+    // 3) Persistir
+    const venta = await modelo.crearVentaTransaccional({
+      turno_caja_id: Number(turno_caja_id),
+      terminal_id: Number(terminal_id),
+      usuario_id: user.id,
+      total,
+      articulos: lineas,
+      pagos: pagosFinal,
+      empleado_fiado_id: empleado_fiado_id ? Number(empleado_fiado_id) : null,
+      tipo_operacion: tipoOperacion
+    });
+
+    res.status(201).json({ message: 'Operación registrada con éxito', venta });
+  } catch (e) {
+    responderError(res, e, 'Error al procesar la venta');
   }
 };
 
+// POST /ventas/:id/reembolso   { terminal_id }
 export const reembolsar = async (req, res) => {
   try {
-    const { id } = req.params;
-    const resultado = await modelo.reembolsarVentaTransaccional(Number(id));
+    const terminalId = Number(req.body?.terminal_id);
+    if (!Number.isInteger(terminalId) || terminalId <= 0) {
+      throw new ErrorHttp(400, 'Falta la terminal que realiza el reembolso.');
+    }
+    const resultado = await modelo.reembolsarVentaTransaccional(Number(req.params.id), terminalId);
     res.status(200).json({ message: 'Venta reembolsada con éxito', ...resultado });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+  } catch (e) { responderError(res, e, 'Error al procesar el reembolso'); }
 };

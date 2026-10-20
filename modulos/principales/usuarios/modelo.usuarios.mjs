@@ -1,15 +1,29 @@
 import pool from "../../bd/conexion.bd.mjs";
 
+const COLUMNAS_SEGURAS = `
+  u.id, u.rol_id, r.nombre AS rol, u.nombre, u.apellido,
+  u.dni, u.cuil, u.email, u.activo, u.created_at`;
+
 //Obtener todos los usuarios
 export async function obtenerTodos(){
-    const resultado = await pool.query("SELECT * FROM usuario");
+    const resultado = await pool.query(
+      `SELECT ${COLUMNAS_SEGURAS} FROM usuario u LEFT JOIN rol r ON r.id = u.rol_id ORDER BY u.id`);
     return resultado.rows;
 }
 
+
 //Obtener un usuario por id
 export async function obtenerUno(id){
-    const resultado = await pool.query("SELECT * FROM usuario WHERE id = $1", [id]);
+    const resultado = await pool.query(
+      `SELECT ${COLUMNAS_SEGURAS} FROM usuario u LEFT JOIN rol r ON r.id = u.rol_id WHERE u.id = $1`, [id]);
     return resultado.rows[0];
+}
+
+//Lista mínima de selectores
+export async function obtenerOperadores() {
+    const { rows } = await pool.query(
+      'SELECT id, nombre, apellido, dni FROM usuario WHERE activo = true ORDER BY apellido, nombre');
+    return rows;
 }
 
 //Crear un usuario

@@ -26,26 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnConfirmAccept = document.getElementById('btn-confirm-accept');
   const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
 
-  // 1. Verificación de sesión de Administrador
-  async function verificarSesion() {
-    try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-
-      if (data.user?.rol !== 'ADMINISTRADOR') {
-        alert('Acceso restringido a administradores.');
-        window.location.replace('index.html');
-        return;
-      }
-
-      currentUser = data.user;
-      userDisplay.textContent = `${currentUser.nombre} ${currentUser.apellido}`;
-    } catch {
-      window.location.replace('index.html');
-    }
-  }
-
   // 2. Carga de datos base (Roles y Usuarios)
   async function cargarRoles() {
     try {
@@ -358,8 +338,15 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#039;');
   }
 
-  // Inicialización
-  verificarSesion();
-  cargarRoles();
-  cargarUsuarios();
+  async function iniciarModulo() {
+    const user = await Auth.init('usuarios.gestionar');
+    if (!user) return;
+    Auth.renderSidebar('usuarios.html');
+    userDisplay.textContent = `${user.nombre} ${user.apellido}`;
+
+    await cargarRoles();
+    await cargarUsuarios();
+  }
+
+  iniciarModulo();
 });

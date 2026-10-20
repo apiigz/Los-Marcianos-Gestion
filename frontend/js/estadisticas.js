@@ -1,28 +1,13 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  await inicializarModulo();
+  const user = await Auth.init('estadisticas.ver');
+  if (!user) return;                       // ← corta todo el flujo
+  Auth.renderSidebar('estadisticas.html');
+  const display = document.getElementById('admin-user-display');
+  if (display) display.textContent = `${user.nombre} ${user.apellido || ''}`;
   configurarFiltros();
   await cargarEstadisticas();
 });
 
-async function inicializarModulo() {
-  try {
-    const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-    if (!res.ok) window.location.replace('index.html');
-    const data = await res.json();
-    const user = data.user;
-
-    if (user.rol !== 'ADMINISTRADOR') {
-      alert('Acceso denegado: solo personal administrativo.');
-      window.location.replace('ventas.html');
-      return;
-    }
-
-    const display = document.getElementById('admin-user-display');
-    if (display) display.textContent = `${user.nombre} ${user.apellido || ''}`;
-  } catch {
-    window.location.replace('index.html');
-  }
-}
 
 function configurarFiltros() {
   const selectRango = document.getElementById('filtro-rango');
