@@ -8,6 +8,8 @@ const MENU_ADMIN = [
   ['proveedores.html', 'Proveedores',         'productos.ver|proveedores.gestionar'],
   ['clientes.html',     'Clientes',            'cliente.gestionar|mayorista.ver'],
   ['mayorista-pedidos.html', 'Pedidos mayoristas', 'mayorista.ver|mayorista.vender|mayorista.preparar'],
+  ['mayorista-viajes.html', 'Viajes y rendiciones', 'mayorista.ver|mayorista.cargar_camioneta|mayorista.entregar|mayorista.rendir'],
+  ['mayorista-cuentas.html', 'Cuentas de clientes', 'mayorista.ver|mayorista.cobrar|mayorista.reembolsar|mayorista.pagar_reembolso'],
   ['stock.html',       'Stock por sucursal',  'stock.ver'],
   ['turnos.html',      'Turnos',              'turno.ver_todos'],
   ['ventas-admin.html','Ventas',              'ventas.ver_todas'],

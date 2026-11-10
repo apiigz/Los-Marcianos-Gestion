@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Viajes y rendiciones</title>
+  <link rel="stylesheet" href="css/usuarios.css">
+  <style>
+    .modal-dialog-xl { max-width: 900px; }
+    .estado { display:inline-block; padding:.15rem .5rem; border-radius:4px; font-size:.7rem; font-weight:700; border:1px solid var(--border-subtle); }
+    .estado-ABIERTO { color:#fbbf24; } .estado-EN_CURSO { color:#38bdf8; } .estado-REGRESADO { color:#a78bfa; }
+    .estado-RENDIDO { color:#34d399; } .estado-CANCELADO { color:#f87171; }
+    h4.sec { font-size:.75rem; text-transform:uppercase; color:var(--text-subtle); margin:1rem 0 .4rem; }
+    .kpis { display:flex; gap:1.5rem; flex-wrap:wrap; margin:.6rem 0; }
+    .kpi small { display:block; color:var(--text-subtle); text-transform:uppercase; font-size:.65rem; }
+    .kpi b { font-family:ui-monospace,monospace; font-size:1.05rem; }
+    .debe { color:#f87171; } .favor { color:#34d399; }
+  </style>
+</head>
+<body>
+  <header class="admin-header">
+    <div class="header-left"><span class="close-icon">&times;</span><h1 class="header-title">Administrador</h1></div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar"><nav class="sidebar-nav"></nav></aside>
+    <main class="admin-main">
+      <section class="content-card">
+        <div style="display:flex; gap:.75rem; align-items:center;">
+          <select id="filtro-estado" class="table-input" style="max-width:220px;">
+            <option value="">Todos los estados</option>
+            <option value="ABIERTO">Abiertos (cargando)</option>
+            <option value="EN_CURSO">En curso</option>
+            <option value="REGRESADO">Regresados (por rendir)</option>
+            <option value="RENDIDO">Rendidos</option>
+            <option value="CANCELADO">Cancelados</option>
+          </select>
+        </div>
+        <div class="table-container">
+          <table class="users-table">
+            <thead><tr><th>Viaje</th><th>Fecha</th><th>Vehículo</th><th>Encargado</th><th>Estado</th><th style="text-align:right;">Pedidos</th></tr></thead>
+            <tbody id="viajes-tbody"></tbody>
+          </table>
+        </div>
+        <div class="table-footer-actions">
+          <button id="btn-nuevo" class="btn-primary-green" type="button" data-permiso="mayorista.cargar_camioneta">+ Nuevo viaje</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Nuevo viaje -->
+  <div id="modal-nuevo" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header"><h2>Nuevo viaje</h2><button type="button" class="btn-modal-close" id="n-close">&times;</button></div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:.8rem;">
+        <div class="form-group"><label for="n-vehiculo">Vehículo</label><select id="n-vehiculo"></select></div>
+        <div class="form-group"><label for="n-encargado">Encargado del viaje</label><select id="n-encargado"></select></div>
+        <div class="form-group"><label for="n-obs">Observaciones</label><input type="text" id="n-obs" maxlength="300"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="n-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="n-ok">Crear viaje</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detalle -->
+  <div id="modal-viaje" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-xl">
+      <div class="modal-header"><h2 id="v-titulo">Viaje</h2><button type="button" class="btn-modal-close" id="v-close">&times;</button></div>
+      <div class="modal-body" id="v-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="v-cancelar" style="display:none;">Cancelar viaje</button>
+        <button type="button" class="btn-confirm" id="v-salir" style="display:none;">Salir a reparto</button>
+        <button type="button" class="btn-confirm" id="v-regresar" style="display:none;">Registrar regreso</button>
+        <button type="button" class="btn-confirm" id="v-rendir" style="display:none;">Recibir rendición</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rendición -->
+  <div id="modal-rendir" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header"><h2>Rendición de efectivo</h2><button type="button" class="btn-modal-close" id="r-close">&times;</button></div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:.8rem;">
+        <p id="r-info" style="font-size:.85rem;"></p>
+        <div class="form-group"><label for="r-contado">Efectivo contado ($)</label><input type="number" id="r-contado" min="0" step="0.01"></div>
+        <div class="form-group"><label for="r-obs">Observaciones (obligatorio si hay diferencia)</label><input type="text" id="r-obs" maxlength="300"></div>
+        <small class="helper-text">Quien confirma queda registrado como quien recibió el dinero.</small>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="r-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="r-ok">Confirmar rendición</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/mayorista-viajes.js"></script>
+</body>
+</html>

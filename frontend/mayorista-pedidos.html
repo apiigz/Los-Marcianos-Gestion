@@ -131,6 +131,9 @@
       </div>
       <div class="modal-body" id="d-body"></div>
       <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="d-nodisp" style="display:none;">No se pudo entregar</button>
+        <button type="button" class="btn-cancel" id="d-cobrar" style="display:none;">Registrar cobro</button>
+        <button type="button" class="btn-confirm" id="d-entregar" style="display:none;">Registrar entrega</button>
         <button type="button" class="btn-cancel" id="d-cancelar" style="display:none;">Cancelar pedido</button>
         <button type="button" class="btn-cancel" id="d-editar" style="display:none;">Modificar renglones</button>
         <button type="button" class="btn-confirm" id="d-preparar" style="display:none;">Marcar como preparado</button>
@@ -138,7 +141,56 @@
     </div>
   </div>
 
+  <!--Modal de entrega y cobro-->
+    <div id="modal-entrega" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-xl">
+      <div class="modal-header">
+        <h2 id="e-titulo">Entrega</h2>
+        <button type="button" class="btn-modal-close" id="e-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="e-sec-items">
+          <h4 style="font-size:.75rem; text-transform:uppercase; color:var(--text-subtle); margin-bottom:.4rem;">
+            Lo que se entrega · el pedido se cobra completo; lo que falte queda pendiente para la próxima entrega
+          </h4>
+          <table class="users-table">
+            <thead><tr><th>Producto</th><th style="text-align:right;">Pedido</th><th style="width:140px;">Entregado</th></tr></thead>
+            <tbody id="e-items"></tbody>
+          </table>
+        </div>
+
+        <div id="e-sec-pend" style="margin-top:1rem;">
+          <h4 style="font-size:.75rem; text-transform:uppercase; color:var(--text-subtle); margin-bottom:.4rem;">
+            Faltantes de entregas anteriores (entregar hoy)
+          </h4>
+          <table class="users-table">
+            <thead><tr><th>Producto</th><th>Remito</th><th style="text-align:right;">Debe</th><th style="width:140px;">Entrega hoy</th></tr></thead>
+            <tbody id="e-pend"></tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:1rem;">
+          <h4 style="font-size:.75rem; text-transform:uppercase; color:var(--text-subtle); margin-bottom:.4rem;">Cobro</h4>
+          <p id="e-resumen" style="margin-bottom:.6rem; font-size:.85rem;"></p>
+          <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr auto; align-items:end;">
+            <div class="form-group"><label for="e-medio">Medio</label><select id="e-medio"></select></div>
+            <div class="form-group"><label for="e-monto">Monto</label><input type="number" id="e-monto" min="0" step="0.01"></div>
+            <div class="form-group" id="e-cuenta-wrap"><label for="e-cuenta">Cuenta destino</label><select id="e-cuenta"></select></div>
+            <div class="form-group"><label for="e-ref">Referencia</label><input type="text" id="e-ref" maxlength="100" placeholder="N° de boleta"></div>
+            <button type="button" class="btn-confirm" id="e-agregar">Agregar</button>
+          </div>
+          <table class="users-table" style="margin-top:.6rem;"><tbody id="e-cobros"></tbody></table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="e-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="e-confirmar">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/auth.js"></script>
   <script src="js/mayorista-pedidos.js"></script>
+  <script src="js/mayorista-entrega.js"></script>
 </body>
 </html>

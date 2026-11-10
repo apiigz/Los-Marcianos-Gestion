@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Cuentas de clientes</title>
+  <link rel="stylesheet" href="css/usuarios.css">
+  <style>
+    .modal-dialog-xl { max-width: 900px; }
+    .debe { color:#f87171; font-weight:700; } .favor { color:#34d399; font-weight:700; }
+    .kpis { display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:.9rem; }
+    .kpi small { display:block; color:var(--text-subtle); text-transform:uppercase; font-size:.65rem; }
+    .kpi b { font-family:ui-monospace,monospace; font-size:1.1rem; }
+    h4.sec { font-size:.75rem; text-transform:uppercase; color:var(--text-subtle); margin:1rem 0 .4rem; }
+  </style>
+</head>
+<body>
+  <header class="admin-header">
+    <div class="header-left"><span class="close-icon">&times;</span><h1 class="header-title">Administrador</h1></div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar"><nav class="sidebar-nav"></nav></aside>
+    <main class="admin-main">
+      <section class="content-card">
+        <div style="display:flex; gap:.75rem; align-items:center;">
+          <input type="text" id="buscar" class="table-input" style="max-width:300px;" placeholder="Buscar cliente...">
+          <label style="font-size:.8rem; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="solo-deuda"> Solo con deuda
+          </label>
+        </div>
+        <div class="table-container">
+          <table class="users-table">
+            <thead><tr><th>Cliente</th><th style="text-align:right;">Saldo</th><th style="text-align:right;">Límite</th></tr></thead>
+            <tbody id="cuentas-tbody"></tbody>
+          </table>
+        </div>
+        <div id="total-deuda" style="font-size:.85rem; color:var(--text-muted);"></div>
+        <h4 class="sec">Devoluciones de dinero pendientes de transferir</h4>
+        <div class="table-container" style="max-height:220px;">
+          <table class="users-table">
+            <thead><tr><th>#</th><th>Cliente</th><th>Medio</th><th>Motivo</th><th style="text-align:right;">Monto</th><th></th></tr></thead>
+            <tbody id="reem-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Detalle de la cuenta -->
+  <div id="modal-cuenta" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-xl">
+      <div class="modal-header"><h2 id="c-titulo">Cuenta</h2><button type="button" class="btn-modal-close" id="c-close">&times;</button></div>
+      <div class="modal-body" id="c-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="c-reembolso" style="display:none;">Devolver saldo a favor</button>
+        <button type="button" class="btn-cancel" id="c-ajuste" style="display:none;">Ajuste manual</button>
+        <button type="button" class="btn-confirm" id="c-pago" style="display:none;">Registrar pago a cuenta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pago a cuenta -->
+  <div id="modal-pago" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header"><h2>Pago a cuenta</h2><button type="button" class="btn-modal-close" id="p-close">&times;</button></div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:.8rem;">
+        <div class="form-group"><label for="p-medio">Medio</label><select id="p-medio"></select></div>
+        <div class="form-group"><label for="p-monto">Monto ($)</label><input type="number" id="p-monto" min="0" step="0.01"></div>
+        <div class="form-group" id="p-cuenta-wrap"><label for="p-cuenta">Cuenta destino</label><select id="p-cuenta"></select></div>
+        <div class="form-group"><label for="p-ref">Referencia (opcional)</label><input type="text" id="p-ref" maxlength="100" placeholder="N° de boleta u observación"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="p-cancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="p-ok">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!--Modal devoluciones-->
+    <div id="modal-reem-pagar" class="modal-overlay" hidden>
+        <div class="modal-dialog modal-dialog-sm">
+        <div class="modal-header"><h2>Marcar devolución como pagada</h2><button type="button" class="btn-modal-close" id="rp-close">&times;</button></div>
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:.8rem;">
+            <p id="rp-info" style="font-size:.85rem;"></p>
+            <div class="form-group" id="rp-cuenta-wrap"><label for="rp-cuenta">Cuenta desde la que se transfirió</label><select id="rp-cuenta"></select></div>
+            <div class="form-group"><label for="rp-ref">Referencia (opcional)</label><input type="text" id="rp-ref" maxlength="100" placeholder="N° de operación"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" id="rp-cancel">Cancelar</button>
+            <button type="button" class="btn-confirm" id="rp-ok">Marcar pagada</button>
+        </div>
+        </div>
+    </div>
+  <script src="js/auth.js"></script>
+  <script src="js/mayorista-cuentas.js"></script>
+</body>
+</html>

@@ -139,3 +139,53 @@ export const cancelar = async (req, res) => {
     res.json(await modelo.obtener(id));
   } catch (e) { responderError(res, e, 'Error al cancelar el pedido'); }
 };
+
+// POST /:id/cargar-camioneta   { viaje_id }
+export const cargarCamioneta = async (req, res) => {
+  try {
+    const id = aEntero(req.params.id);
+    if (!id) throw new ErrorHttp(400, 'ID inválido.');
+    const viajeId = aEntero(req.body?.viaje_id);
+    if (!viajeId) throw new ErrorHttp(400, 'Elegí el viaje en el que se carga el pedido.');
+    await modelo.cargarCamioneta(id, viajeId, req.user.id);
+    res.json(await modelo.obtener(id));
+  } catch (e) { responderError(res, e, 'Error al cargar la camioneta'); }
+};
+
+// POST /:id/no-entregado   { motivo }
+export const noEntregado = async (req, res) => {
+  try {
+    const id = aEntero(req.params.id);
+    if (!id) throw new ErrorHttp(400, 'ID inválido.');
+    const motivo = String(req.body.motivo ?? '').trim();
+    if (motivo.length < 3 || motivo.length > 300) throw new ErrorHttp(400, 'Indicá el motivo (3 a 300 caracteres).');
+    await modelo.noEntregado(id, req.user.id, motivo);
+    res.json(await modelo.obtener(id));
+  } catch (e) { responderError(res, e, 'Error al registrar la no entrega'); }
+};
+
+// POST /:id/entregar   { entregas:[{producto_id,cantidad}], pendientes:[{pendiente_id,cantidad}], cobros:[...] }
+export const entregar = async (req, res) => {
+  try {
+    const id = aEntero(req.params.id);
+    if (!id) throw new ErrorHttp(400, 'ID inválido.');
+    await modelo.entregar({
+      id, usuarioId: req.user.id,
+      entregas: req.body.entregas, pendientes: req.body.pendientes, cobros: req.body.cobros,
+      medios: await modeloConfig.obtenerMediosCobro(),
+      puedeVerificar: puede(req.user, 'mayorista.verificar_transferencia')
+    });
+    res.json(await modelo.obtener(id));
+  } catch (e) { responderError(res, e, 'Error al registrar la entrega'); }
+};
+
+// POST /pendientes/:id/acreditar   { motivo }
+export const acreditarPendiente = async (req, res) => {
+  try {
+    const id = aEntero(req.params.id);
+    if (!id) throw new ErrorHttp(400, 'ID inválido.');
+    const motivo = String(req.body.motivo ?? '').trim();
+    if (motivo.length < 3 || motivo.length > 200) throw new ErrorHttp(400, 'Indicá el motivo (3 a 200 caracteres).');
+    res.json(await modelo.acreditarPendiente({ pendienteId: id, usuarioId: req.user.id, motivo }));
+  } catch (e) { responderError(res, e, 'Error al acreditar el faltante'); }
+};

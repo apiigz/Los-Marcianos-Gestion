@@ -22,6 +22,8 @@ import rutasDashboard from './modulos/dashboard/rutas.dashboard.mjs'
 import rutasConfiguracion from './modulos/configuracion/rutas.configuracion.mjs'
 import rutasClientes from './modulos/mayorista/cliente/rutas.cliente.mjs'
 import rutasPedidosMayoristas from './modulos/mayorista/pedido/rutas.pedido.mjs'
+import rutasCuentaMayorista from './modulos/mayorista/cuenta/rutas.cuenta.mjs'
+import rutasViajesMayoristas from './modulos/mayorista/viaje/rutas.viaje.mjs'
 
 const app = express()
 dotenv.config()
@@ -57,6 +59,8 @@ app.use('/api/v1/estadisticas',  verifyToken, requirePermiso('estadisticas.ver')
 app.use('/api/v1/dashboard',     verifyToken, requirePermiso('admin.acceder'), rutasDashboard)
 app.use('/api/v1/clientes', verifyToken, rutasClientes)
 app.use('/api/v1/mayorista/pedidos', verifyToken, rutasPedidosMayoristas)
+app.use('/api/v1/mayorista/cuenta', verifyToken, rutasCuentaMayorista)
+app.use('/api/v1/mayorista/viajes', verifyToken, rutasViajesMayoristas)
 
 app.listen(puerto, () => {
   console.log(`Servidor escuchando en el puerto ${puerto}`)

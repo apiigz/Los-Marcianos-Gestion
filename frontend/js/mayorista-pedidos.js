@@ -241,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
       $('d-cancelar').style.display =
         (pendiente && Auth.canAny(['mayorista.vender', 'mayorista.preparar'])) ||
         (preparado && Auth.can('mayorista.preparar')) ? '' : 'none';
+      window.__entrega?.pintar(p);
       $('modal-detalle').hidden = false;
     } catch (e) { alert(e.message); }
   }
@@ -293,6 +294,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  window.__pedidosCtx = {
+    api, fmt, fecha, escapeHtml,
+    actual: () => detalleActual,
+    recargar: async () => { await cargarPedidos(); if (detalleActual) await verDetalle(detalleActual.id); }
+  };
+
   $('btn-nuevo').addEventListener('click', abrirNuevo);
   $('btn-pedido-guardar').addEventListener('click', guardarPedido);
   ['btn-pedido-close', 'btn-pedido-cancel'].forEach(id => $(id).addEventListener('click', () => ($('modal-pedido').hidden = true)));
@@ -311,6 +318,9 @@ document.addEventListener('DOMContentLoaded', () => {
         clientes = await api('/api/v1/clientes');
       }
     } catch (e) { console.warn(e); }
+    
     await cargarPedidos();
+    const h = Number(location.hash.slice(1));
+    if (Number.isInteger(h) && h > 0) verDetalle(h);
   })();
 });
