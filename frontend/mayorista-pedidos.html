@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Pedidos mayoristas</title>
+  <link rel="stylesheet" href="css/usuarios.css">
+  <style>
+    .modal-dialog-xl { max-width: 860px; }
+    .estado { display:inline-block; padding:.15rem .5rem; border-radius:4px; font-size:.7rem; font-weight:700; border:1px solid var(--border-subtle); }
+    .estado-PENDIENTE  { color:#fbbf24; border-color:rgba(251,191,36,.4); }
+    .estado-PREPARADO  { color:#38bdf8; border-color:rgba(56,189,248,.4); }
+    .estado-EN_REPARTO { color:#a78bfa; border-color:rgba(167,139,250,.4); }
+    .estado-ENTREGADO  { color:#34d399; border-color:rgba(52,211,153,.4); }
+    .estado-CANCELADO  { color:#f87171; border-color:rgba(248,113,113,.4); }
+    .sugerencias { position:absolute; left:0; right:0; top:100%; z-index:20; list-style:none; margin-top:2px;
+      background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:6px; max-height:200px; overflow-y:auto; }
+    .sugerencias li { padding:.5rem .75rem; cursor:pointer; display:flex; justify-content:space-between; font-size:.8rem; }
+    .sugerencias li:hover { background:rgba(255,255,255,.06); }
+    .barra { display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
+    .total-box { font-family:ui-monospace,monospace; font-size:1.1rem; font-weight:700; color:var(--color-green); }
+    .evento { font-size:.75rem; color:var(--text-muted); padding:.2rem 0; border-bottom:1px solid var(--border-subtle); }
+  </style>
+</head>
+<body>
+  <header class="admin-header">
+    <div class="header-left">
+      <span class="close-icon" title="Cerrar panel">&times;</span>
+      <h1 class="header-title">Administrador</h1>
+    </div>
+    <div class="header-right">
+      <span id="user-display" class="user-name">Cargando...</span>
+      <button id="btn-logout" class="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar"><nav class="sidebar-nav"></nav></aside>
+
+    <main class="admin-main">
+      <section class="content-card">
+        <div class="barra">
+          <select id="filtro-estado" class="table-input" style="max-width:220px;">
+            <option value="">Todos los estados</option>
+            <option value="PENDIENTE">Pendientes</option>
+            <option value="PREPARADO">Preparados</option>
+            <option value="EN_REPARTO">En reparto</option>
+            <option value="ENTREGADO">Entregados</option>
+            <option value="CANCELADO">Cancelados</option>
+          </select>
+        </div>
+
+        <div class="table-container">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Remito</th><th>Cliente</th><th>Canal</th><th>Despacha</th>
+                <th>Estado</th><th>Cargó</th><th>Fecha</th><th style="text-align:right;">Total</th>
+              </tr>
+            </thead>
+            <tbody id="pedidos-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="table-footer-actions">
+          <button id="btn-nuevo" class="btn-primary-green" type="button" data-permiso="mayorista.vender">+ Nuevo pedido</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal: alta / edición de renglones -->
+  <div id="modal-pedido" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-xl">
+      <div class="modal-header">
+        <h2 id="modal-pedido-titulo">Nuevo pedido</h2>
+        <button type="button" class="btn-modal-close" id="btn-pedido-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid" style="margin-bottom:1rem;">
+          <div class="form-group">
+            <label for="p-cliente">Cliente *</label>
+            <select id="p-cliente"></select>
+          </div>
+          <div class="form-group">
+            <label for="p-canal">Canal *</label>
+            <select id="p-canal"></select>
+          </div>
+          <div class="form-group">
+            <label for="p-sucursal">Despacha desde</label>
+            <select id="p-sucursal"></select>
+          </div>
+          <div class="form-group">
+            <label for="p-obs">Observaciones</label>
+            <input type="text" id="p-obs" maxlength="500" placeholder="Ej: entregar después de las 10">
+          </div>
+        </div>
+
+        <div class="form-group" style="position:relative; margin-bottom:.75rem;">
+          <label for="p-buscar">Producto (código, interno, 015*16 o nombre)</label>
+          <input type="text" id="p-buscar" autocomplete="off" placeholder="Escaneá o escribí y apretá Enter">
+          <ul id="p-sugerencias" class="sugerencias" hidden></ul>
+        </div>
+
+        <div class="table-container" style="max-height:260px;">
+          <table class="users-table">
+            <thead>
+              <tr><th>Producto</th><th style="width:130px;">Cantidad</th>
+                  <th style="text-align:right;">Precio may.</th><th style="text-align:right;">Subtotal</th><th></th></tr>
+            </thead>
+            <tbody id="p-items"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <span class="total-box">Total: <span id="p-total">$ 0,00</span></span>
+        <span>
+          <button type="button" class="btn-cancel" id="btn-pedido-cancel">Cancelar</button>
+          <button type="button" class="btn-confirm" id="btn-pedido-guardar">Guardar pedido</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: detalle -->
+  <div id="modal-detalle" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-dialog-xl">
+      <div class="modal-header">
+        <h2 id="d-titulo">Pedido</h2>
+        <button type="button" class="btn-modal-close" id="btn-detalle-close">&times;</button>
+      </div>
+      <div class="modal-body" id="d-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="d-cancelar" style="display:none;">Cancelar pedido</button>
+        <button type="button" class="btn-cancel" id="d-editar" style="display:none;">Modificar renglones</button>
+        <button type="button" class="btn-confirm" id="d-preparar" style="display:none;">Marcar como preparado</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/mayorista-pedidos.js"></script>
+</body>
+</html>

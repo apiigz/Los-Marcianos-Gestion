@@ -361,17 +361,25 @@ btnToggleModo?.addEventListener('click', toggleModoDevolucion);
 // ==========================================
 // 4. GESTIÓN DEL CARRITO
 // ==========================================
-function agregarAlCarrito(producto) {
+// cantidadExplicita: viene de "015*16". Si es null, se suma 1 (o 100 g si es por peso y ya estaba)
+function agregarAlCarrito(producto, cantidadExplicita = null) {
   const unidad = String(producto.unidad_medida || 'UNIDAD').toUpperCase().trim();
   const esPesable = (unidad === 'KILO' || unidad === 'KG');
   const multiplicador = modoDevolucionActivo ? -1 : 1;
 
+  if (cantidadExplicita !== null && !esPesable && !Number.isInteger(cantidadExplicita)) {
+    alert(`"${producto.descripcion}" se vende por unidad: la cantidad debe ser un número entero.`);
+    return;
+  }
+
   const itemExistente = carrito.find(p => p.id === producto.id);
 
   if (itemExistente) {
-    // Si es pesable, sumar 100g (0.100); si es unidad, sumar 1
-    const paso = (esPesable ? 0.100 : 1) * multiplicador;
+    const paso = (cantidadExplicita ?? (esPesable ? 0.100 : 1)) * multiplicador;
     itemExistente.cantidad = Number((Number(itemExistente.cantidad) + paso).toFixed(3));
+    if (Math.abs(itemExistente.cantidad) < 0.0005) {
+      carrito = carrito.filter(i => i !== itemExistente);   // se canceló solo
+    }
   } else {
     carrito.push({
       id: producto.id,
@@ -379,7 +387,7 @@ function agregarAlCarrito(producto) {
       descripcion: producto.descripcion,
       precio_unitario: Number(producto.precio_minorista || producto.precio),
       unidad_medida: esPesable ? 'KILO' : 'UNIDAD',
-      cantidad: (esPesable ? 1.000 : 1) * multiplicador,
+      cantidad: (cantidadExplicita ?? 1) * multiplicador,
       es_combo: Boolean(producto.es_combo)
     });
   }
@@ -923,6 +931,20 @@ btnConfirmarFiado?.addEventListener('click', async () => {
   }
 });
 
+// Interpreta lo que escribe el cajero: "015", "779123456", "015*16", "015*0,5"
+function interpretarEntrada(texto) {
+  const t = String(texto || '').trim();
+  if (!t) return null;
+  if (!t.includes('*')) return { codigo: t, cantidad: null };
+
+  const m = t.match(/^([^*]+?)\s*\*\s*(\d+(?:[.,]\d{1,3})?)$/);
+  if (!m) return { error: 'Formato inválido. Usá código*cantidad, por ejemplo 015*16.' };
+
+  const cantidad = parseFloat(m[2].replace(',', '.'));
+  if (!(cantidad > 0) || cantidad > 9999) return { error: 'La cantidad debe estar entre 0 y 9999.' };
+  return { codigo: m[1].trim(), cantidad };
+}
+
 // ==========================================
 // 9. EVENTOS UI Y ATAJOS DE TECLADO
 // ==========================================
@@ -963,51 +985,55 @@ function configurarEventosUI() {
   });
 
   searchInput?.addEventListener('keydown', async (e) => {
-  if (e.key === 'Enter') {
+    if (e.key !== 'Enter') return;
     e.preventDefault();
-    clearTimeout(debounceTimeout); 
-    const codigo = searchInput.value.trim();
 
-    if (codigo.length < 2 || /^\d{6,}$/.test(codigo)) {
-      ocultarSugerencias();
+    const entrada = interpretarEntrada(searchInput.value);
+    if (!entrada) return;
+    if (entrada.error) {
+      alert(entrada.error);
+      searchInput.select();
       return;
     }
 
     try {
-      const res = await fetch(`/api/v1/productos/codigo/${encodeURIComponent(codigo)}`, { credentials: 'include' });
+      const res = await fetch(
+        `/api/v1/productos/codigo/${encodeURIComponent(entrada.codigo)}?lista=minorista`,
+        { credentials: 'include' });
+
       if (!res.ok) {
-        alert('Producto no encontrado o inactivo');
-        searchInput.value = '';
+        alert(`No se encontró "${entrada.codigo}" (producto inexistente, inactivo o fuera de la lista minorista).`);
+        searchInput.select();
         return;
       }
 
       const producto = await res.json();
-      agregarAlCarrito(producto);
+      agregarAlCarrito(producto, entrada.cantidad);
       searchInput.value = '';
       ocultarSugerencias();
     } catch (error) {
-      console.error('Error al pistolear código:', error);
+      console.error('Error al buscar por código:', error);
+      alert('Error de conexión con el servidor.');
     }
-  }
-});
+  });
+
 
   searchInput?.addEventListener('input', () => {
     const query = searchInput.value.trim();
     clearTimeout(debounceTimeout);
 
-    if (query.length < 2 || /^\d{6,}$/.test(query)) {
+    // Solo números o con "*" = código (barras o interno): no hay nada que sugerir por nombre
+    if (query.length < 2 || /^\d+$/.test(query) || query.includes('*')) {
       ocultarSugerencias();
       return;
     }
 
     debounceTimeout = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v1/productos/buscar?q=${encodeURIComponent(query)}`, { credentials: 'include' });
-        if (!res.ok) {
-          console.error('Búsqueda rechazada:', res.status);
-          ocultarSugerencias();
-          return;
-        }
+        const res = await fetch(
+          `/api/v1/productos/buscar?q=${encodeURIComponent(query)}&lista=minorista`,
+          { credentials: 'include' });
+        if (!res.ok) { ocultarSugerencias(); return; }
         const productos = await res.json();
         mostrarSugerencias(Array.isArray(productos) ? productos : []);
       } catch (err) {

@@ -5,8 +5,8 @@ import { requirePermiso } from '../../middlewares/auth.middleware.mjs';
 const r = new Router();
 
 // --- Búsquedas del POS (rutas fijas ANTES de /:id) ---
-r.get('/buscar',          requirePermiso('pos.acceder', 'productos.ver'), c.buscarProductos);
-r.get('/codigo/:codigo',  requirePermiso('pos.acceder', 'productos.ver'), c.obtenerPorCodigo);
+r.get('/buscar',          requirePermiso('pos.acceder', 'productos.ver', 'mayorista.vender'), c.buscarProductos);
+r.get('/codigo/:codigo',  requirePermiso('pos.acceder', 'productos.ver', 'mayorista.vender'), c.obtenerPorCodigo);
 
 // --- Catálogo (admin) ---
 r.get('/',                requirePermiso('productos.ver'),    c.obtenerTodos);

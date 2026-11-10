@@ -62,6 +62,11 @@ export const crearUno = async (req, res) => {
       if (!Number.isFinite(cantidad) || cantidad === 0) throw new ErrorHttp(400, 'Cantidad inválida.');
       if (cantidad < 0) hayDevolucion = true;
 
+      // Solo se vende al público lo que está en la lista minorista (las devoluciones se permiten siempre)
+      if (cantidad > 0 && !p.vende_minorista) {
+        throw new ErrorHttp(400, `"${p.descripcion}" no está habilitado para venta minorista.`);
+      }
+
       const precio = Number(p.precio_minorista);
       return {
         producto_id: p.id,

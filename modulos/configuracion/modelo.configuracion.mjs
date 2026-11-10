@@ -29,3 +29,8 @@ export async function guardarRecargos({ debito, credito, maximo }) {
     client.release();
   }
 }
+
+export async function obtenerValor(clave, porDefecto = null) {
+  const { rows } = await pool.query('SELECT valor FROM configuracion WHERE clave = $1', [clave]);
+  return rows[0] ? rows[0].valor : porDefecto;
+}

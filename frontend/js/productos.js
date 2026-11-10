@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectCatFilter = document.getElementById('filtro-categoria');
   const selectProvFilter = document.getElementById('filtro-proveedor');
   const selectOrdenFilter = document.getElementById('filtro-orden');
+  const selectListaFilter = document.getElementById('filtro-lista');
   const btnLimpiarFiltros = document.getElementById('btn-limpiar-filtros');
 
   // Modal Crear
@@ -122,43 +123,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const query = (inputSearch?.value || '').toLowerCase().trim();
     const categoriaVal = selectCatFilter?.value || 'ALL';
     const proveedorVal = selectProvFilter?.value || 'ALL';
+    const listaVal = selectListaFilter?.value || 'ALL';
     const orden = selectOrdenFilter?.value || 'creacion_desc';
 
     if (!Array.isArray(todosLosProductos)) return;
 
-    // Filtrado
     let filtrados = todosLosProductos.filter(p => {
       const cod = String(p.codigo_barra || '').toLowerCase();
+      const interno = String(p.codigo_interno || '').toLowerCase();
       const desc = String(p.descripcion || '').toLowerCase();
-      const matchTexto = !query || cod.includes(query) || desc.includes(query);
+      const matchTexto = !query || cod.includes(query) || interno.includes(query) || desc.includes(query);
 
-      let matchCat = (categoriaVal === 'ALL');
-      if (!matchCat) {
-        matchCat = String(p.categoria_id) === String(categoriaVal);
-      }
+      const matchCat = categoriaVal === 'ALL' || String(p.categoria_id) === String(categoriaVal);
+      const matchProv = proveedorVal === 'ALL' || String(p.proveedor_id) === String(proveedorVal);
 
-      let matchProv = (proveedorVal === 'ALL');
-      if (!matchProv) {
-        matchProv = String(p.proveedor_id) === String(proveedorVal);
-      }
+      let matchLista = true;
+      if (listaVal === 'MINORISTA') matchLista = p.vende_minorista;
+      if (listaVal === 'MAYORISTA') matchLista = p.vende_mayorista;
+      if (listaVal === 'AMBAS') matchLista = p.vende_minorista && p.vende_mayorista;
 
-      return matchTexto && matchCat && matchProv;
+      return matchTexto && matchCat && matchProv && matchLista;
     });
 
-    // Ordenamiento
     filtrados.sort((a, b) => {
       switch (orden) {
-        case 'precio_desc':
-          return Number(b.precio_minorista || 0) - Number(a.precio_minorista || 0);
-        case 'precio_asc':
-          return Number(a.precio_minorista || 0) - Number(b.precio_minorista || 0);
-        case 'alfabetico':
-          return String(a.descripcion || '').localeCompare(String(b.descripcion || ''));
-        case 'creacion_asc':
-          return (Number(a.id) || 0) - (Number(b.id) || 0);
+        case 'precio_desc': return Number(b.precio_minorista || 0) - Number(a.precio_minorista || 0);
+        case 'precio_asc': return Number(a.precio_minorista || 0) - Number(b.precio_minorista || 0);
+        case 'alfabetico': return String(a.descripcion || '').localeCompare(String(b.descripcion || ''));
+        case 'creacion_asc': return (Number(a.id) || 0) - (Number(b.id) || 0);
         case 'creacion_desc':
-        default:
-          return (Number(b.id) || 0) - (Number(a.id) || 0);
+        default: return (Number(b.id) || 0) - (Number(a.id) || 0);
       }
     });
 
@@ -175,6 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const badge = (txt, color) =>
+      `<span style="font-size:.62rem; font-weight:700; padding:1px 5px; border-radius:4px; border:1px solid ${color}; color:${color}; margin-right:4px;">${txt}</span>`;
+
     lista.forEach(p => {
       const tr = document.createElement('tr');
       tr.dataset.id = p.id;
@@ -184,8 +181,18 @@ document.addEventListener('DOMContentLoaded', () => {
         tr.classList.add('editing-row');
         tr.innerHTML = `
           <td>${p.id}</td>
-          <td><input type="text" class="table-input" id="edit-codigo-${p.id}" value="${escapeHtml(p.codigo_barra || '')}" required></td>
-          <td><input type="text" class="table-input" id="edit-descripcion-${p.id}" value="${escapeHtml(p.descripcion || '')}" required></td>
+          <td>
+            <input type="text" class="table-input" id="edit-codigo-${p.id}" value="${escapeHtml(p.codigo_barra || '')}" required>
+            <input type="text" class="table-input" id="edit-interno-${p.id}" value="${escapeHtml(p.codigo_interno || '')}"
+                   placeholder="Cód. interno" maxlength="6" inputmode="numeric" style="margin-top:4px;">
+          </td>
+          <td>
+            <input type="text" class="table-input" id="edit-descripcion-${p.id}" value="${escapeHtml(p.descripcion || '')}" required>
+            <div style="display:flex; gap:.9rem; margin-top:6px; font-size:.7rem; color:var(--text-muted);">
+              <label style="cursor:pointer;"><input type="checkbox" id="edit-lista-min-${p.id}" ${p.vende_minorista ? 'checked' : ''}> Minorista</label>
+              <label style="cursor:pointer;"><input type="checkbox" id="edit-lista-may-${p.id}" ${p.vende_mayorista ? 'checked' : ''}> Mayorista</label>
+            </div>
+          </td>
           <td>
             <select class="table-input" id="edit-categoria-${p.id}">
               ${categoriasList.map(c => `<option value="${c.id}" ${c.id === p.categoria_id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
@@ -219,16 +226,24 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       } else {
         // --- MODO LECTURA ---
-        const catNombre = p.categoria_nombre || categoriasList.find(c => c.id === p.categoria_id)?.nombre || '-';
-        const provNombre = p.proveedor_nombre || proveedoresList.find(pr => pr.id === p.proveedor_id)?.razon_social || proveedoresList.find(pr => pr.id === p.proveedor_id)?.nombre || '-';
         const circleClass = p.activo ? 'status-active' : 'status-inactive';
+        const catNombre = categoriasList.find(c => c.id === p.categoria_id)?.nombre || '-';
+        const pr = proveedoresList.find(x => x.id === p.proveedor_id);
+        const provNombre = pr?.razon_social || pr?.nombre || '-';
 
         tr.innerHTML = `
           <td>${p.id}</td>
-          <td style="font-family: ui-monospace; font-weight: 600;">${escapeHtml(p.codigo_barra || '')}</td>
+          <td style="font-family: ui-monospace; font-weight: 600;">
+            ${escapeHtml(p.codigo_barra || '')}
+            ${p.codigo_interno ? `<br><small style="color:#a78bfa; font-weight:700;">INT ${escapeHtml(p.codigo_interno)}</small>` : ''}
+          </td>
           <td>
             <strong>${escapeHtml(p.descripcion || '')}</strong>
-            ${p.es_combo ? '<span style="color:var(--color-purple); font-size:0.7rem; margin-left:4px;">[COMBO]</span>' : ''}
+            ${p.es_combo ? '<span style="color:#a78bfa; font-size:0.7rem; margin-left:4px;">[COMBO]</span>' : ''}
+            <div style="margin-top:3px;">
+              ${p.vende_minorista ? badge('MINORISTA', 'var(--color-green)') : ''}
+              ${p.vende_mayorista ? badge('MAYORISTA', 'var(--color-edit)') : ''}
+            </div>
           </td>
           <td>${escapeHtml(catNombre)}</td>
           <td>${escapeHtml(provNombre)}</td>
@@ -259,12 +274,14 @@ document.addEventListener('DOMContentLoaded', () => {
     inputSearch?.addEventListener('input', aplicarFiltrosYRenderizar);
     selectCatFilter?.addEventListener('change', aplicarFiltrosYRenderizar);
     selectProvFilter?.addEventListener('change', aplicarFiltrosYRenderizar);
+    selectListaFilter?.addEventListener('change', aplicarFiltrosYRenderizar);
     selectOrdenFilter?.addEventListener('change', aplicarFiltrosYRenderizar);
 
     btnLimpiarFiltros?.addEventListener('click', () => {
       if (inputSearch) inputSearch.value = '';
       if (selectCatFilter) selectCatFilter.value = 'ALL';
       if (selectProvFilter) selectProvFilter.value = 'ALL';
+      if (selectListaFilter) selectListaFilter.value = 'ALL';
       if (selectOrdenFilter) selectOrdenFilter.value = 'creacion_desc';
       aplicarFiltrosYRenderizar();
     });
@@ -313,14 +330,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const codigo = document.getElementById(`edit-codigo-${id}`).value.trim();
       const descripcion = document.getElementById(`edit-descripcion-${id}`).value.trim();
       const precioMinorista = parseFloat(document.getElementById(`edit-minorista-${id}`).value);
+      const codigoInterno = document.getElementById(`edit-interno-${id}`).value.trim();
 
       if (!codigo || !descripcion || isNaN(precioMinorista)) {
         alert('Código de barra, descripción y precio minorista son requeridos.');
         return;
       }
+      if (codigoInterno && !/^\d{1,6}$/.test(codigoInterno)) {
+        alert('El código interno debe tener entre 1 y 6 dígitos.');
+        return;
+      }
 
       const payload = {
         codigo_barra: codigo,
+        codigo_interno: codigoInterno || null,
         descripcion: descripcion,
         categoria_id: Number(document.getElementById(`edit-categoria-${id}`).value),
         proveedor_id: Number(document.getElementById(`edit-proveedor-${id}`).value),
@@ -328,7 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
         precio_minorista: precioMinorista,
         precio_mayorista: parseFloat(document.getElementById(`edit-mayorista-${id}`).value) || 0,
         alicuota_iva: parseFloat(document.getElementById(`edit-iva-${id}`).value),
-        activo: document.getElementById(`edit-activo-${id}`).checked
+        activo: document.getElementById(`edit-activo-${id}`).checked,
+        vende_minorista: document.getElementById(`edit-lista-min-${id}`).checked,
+        vende_mayorista: document.getElementById(`edit-lista-may-${id}`).checked
       };
 
       abrirModalConfirm(
@@ -423,6 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formData = new FormData(formCreate);
     const payload = {
       codigo_barra: formData.get('codigo_barra').trim(),
+      codigo_interno: (formData.get('codigo_interno') || '').trim() || null,
       descripcion: formData.get('descripcion').trim(),
       categoria_id: Number(formData.get('categoria_id')),
       proveedor_id: Number(formData.get('proveedor_id')),
@@ -430,7 +456,9 @@ document.addEventListener('DOMContentLoaded', () => {
       precio_minorista: parseFloat(formData.get('precio_minorista')),
       precio_mayorista: parseFloat(formData.get('precio_mayorista')) || 0,
       alicuota_iva: parseFloat(formData.get('alicuota_iva')),
-      activo: formData.get('activo') === 'on'
+      activo: formData.get('activo') === 'on',
+      vende_minorista: formData.get('vende_minorista') === 'on',
+      vende_mayorista: formData.get('vende_mayorista') === 'on'
     };
 
     try {

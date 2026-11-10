@@ -1,147 +1,97 @@
 import * as modelo from './modelo.productos.mjs';
 import * as modeloStock from '../stock_sucursal/modelo.stock_sucursal.mjs';
+import { ErrorHttp } from '../../utils/errores.mjs';
 
-// Obtener todos los productos
-export const obtenerTodos = async (req, res) => {
-  try {
-    const productos = await modelo.obtenerTodos();
-    res.json(productos);
-  } catch (error) {
-    console.error('Error al obtener todos los productos:', error);
-    res.status(500).json({ message: 'Error interno del servidor' });
+function responderError(res, e, generico) {
+  if (e instanceof ErrorHttp) {
+    return res.status(e.status).json({ error: e.message, message: e.message, codigo: e.codigo });
   }
+  console.error(generico, e);
+  return res.status(500).json({ error: generico, message: generico });
+}
+
+export const obtenerTodos = async (req, res) => {
+  try { res.json(await modelo.obtenerTodos()); }
+  catch (e) { responderError(res, e, 'Error al obtener los productos'); }
 };
 
-// Obtener un producto por ID
 export const obtenerUno = async (req, res) => {
   try {
-    const { id } = req.params;
-    const producto = await modelo.obtenerUno(id);
-    if (!producto) {
-      return res.status(404).json({ error: 'Producto no encontrado' })
-    }
+    const producto = await modelo.obtenerUno(req.params.id);
+    if (!producto) throw new ErrorHttp(404, 'Producto no encontrado');
     res.json(producto);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener el producto' })
-    console.error(error.message);
-  }
-}
+  } catch (e) { responderError(res, e, 'Error al obtener el producto'); }
+};
 
-//Crear un producto
 export const crearUno = async (req, res) => {
-  const dato = req.body;
   try {
-    const nuevoProducto = await modelo.crearUno(dato);
-    await modeloStock.inicializarStockEnTodasLasSucursales(nuevoProducto.id, 0);
+    const nuevo = await modelo.crearUno(req.body);
+    await modeloStock.inicializarStockEnTodasLasSucursales(nuevo.id, 0);
+    res.status(201).json(nuevo);
+  } catch (e) { responderError(res, e, 'Error al crear el producto'); }
+};
 
-    res.status(201).json(nuevoProducto);
-
-  } catch (error) {
-    res.status(500).json({ error: 'Error al crear el producto' });
-    console.error(error);
-  }
-}
-
-//Actualizar un producto por ID
 export const actualizarUno = async (req, res) => {
-  const { id } = req.params;
-  const dato = req.body;
-
   try {
-    const productoActualizado = await modelo.actualizarUno(id, dato);
-    res.json(productoActualizado);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar el producto' })
-  }
-}
+    const actualizado = await modelo.actualizarUno(req.params.id, req.body);
+    if (!actualizado) throw new ErrorHttp(404, 'Producto no encontrado');
+    res.json(actualizado);
+  } catch (e) { responderError(res, e, 'Error al actualizar el producto'); }
+};
 
-//Eliminar un producto por ID
 export const eliminarUno = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const productoEliminado = await modelo.eliminarUno(id);
-    res.json(productoEliminado);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al eliminar el producto' })
-  }
-}
-
-export const obtenerPorCodigo = async (req, res) => {
-  try {
-    const producto = await modelo.buscarProductoPorCodigo(req.params.codigo);
-    if (!producto) return res.status(404).json({ message: 'Producto no encontrado' });
-    res.json(producto);
-  } catch (error) {
-    console.error('Error al buscar por código:', error);
-    res.status(500).json({ message: 'Error interno del servidor' });
+    const eliminado = await modelo.eliminarUno(req.params.id);
+    if (!eliminado) throw new ErrorHttp(404, 'Producto no encontrado');
+    res.json(eliminado);
+  } catch (e) {
+    if (e.code === '23503') {
+      return responderError(res, new ErrorHttp(409, 'El producto tiene ventas o stock asociado: desactivalo en vez de eliminarlo.'));
+    }
+    responderError(res, e, 'Error al eliminar el producto');
   }
 };
 
-// Buscar por coincidencia de texto (query param: /buscar?q=coca)
+// GET /productos/codigo/:codigo?lista=minorista|mayorista   (código de barras O interno)
+export const obtenerPorCodigo = async (req, res) => {
+  try {
+    const producto = await modelo.buscarProductoPorCodigo(req.params.codigo, req.query.lista);
+    if (!producto) throw new ErrorHttp(404, 'Producto no encontrado, inactivo o fuera de la lista.');
+    res.json(producto);
+  } catch (e) { responderError(res, e, 'Error al buscar por código'); }
+};
+
+// GET /productos/buscar?q=coca&lista=minorista
 export const buscarProductos = async (req, res) => {
   try {
     const termino = req.query.q?.trim();
-
-    if (!termino || termino.length < 2) {
-      return res.json([]); // Si escribió menos de 2 letras, no busca nada
-    }
-
-    const resultados = await modelo.buscarPorNombre(termino);
-    res.json(resultados);
-  } catch (error) {
-    console.error('Error al buscar por nombre:', error);
-    res.status(500).json({ message: 'Error interno del servidor' });
-  }
+    if (!termino || termino.length < 2) return res.json([]);
+    res.json(await modelo.buscarPorNombre(termino, req.query.lista));
+  } catch (e) { responderError(res, e, 'Error al buscar por nombre'); }
 };
 
 export const cambiarEstado = async (req, res) => {
   try {
-    const { id } = req.params;
     const { activo } = req.body;
-
-    if (typeof activo !== 'boolean') {
-      return res.status(400).json({ error: 'El campo "activo" debe ser un booleano (true/false).' });
-    }
-
-    const productoActualizado = await modelo.cambiarEstadoProducto(Number(id), activo);
-
-    if (!productoActualizado) {
-      return res.status(404).json({ error: 'Producto no encontrado.' });
-    }
-
-    return res.status(200).json({
-      message: `Producto ${activo ? 'activado' : 'desactivado'} exitosamente.`,
-      producto: productoActualizado
-    });
-  } catch (error) {
-    console.error('Error al cambiar estado de producto:', error);
-    return res.status(500).json({ error: error.message || 'Error interno del servidor.' });
-  }
+    if (typeof activo !== 'boolean') throw new ErrorHttp(400, 'El campo "activo" debe ser un booleano (true/false).');
+    const producto = await modelo.cambiarEstadoProducto(Number(req.params.id), activo);
+    if (!producto) throw new ErrorHttp(404, 'Producto no encontrado.');
+    res.json({ message: `Producto ${activo ? 'activado' : 'desactivado'} exitosamente.`, producto });
+  } catch (e) { responderError(res, e, 'Error al cambiar el estado del producto'); }
 };
 
 export const obtenerComponentes = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const componentes = await modelo.obtenerComponentesCombo(Number(id));
-    res.status(200).json(componentes);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  try { res.json(await modelo.obtenerComponentesCombo(Number(req.params.id))); }
+  catch (e) { responderError(res, e, 'Error al obtener los componentes'); }
 };
 
 export const guardarComponentes = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { componentes } = req.body; // Array de { producto_ingrediente_id, cantidad }
-
+    const { componentes } = req.body;
     if (!Array.isArray(componentes) || componentes.length === 0) {
-      return res.status(400).json({ error: 'Debe especificar al menos un producto ingrediente para la promo.' });
+      throw new ErrorHttp(400, 'Debe especificar al menos un producto ingrediente para la promo.');
     }
-
-    await modelo.guardarComponentesCombo(Number(id), componentes);
-    res.status(200).json({ message: 'Componentes guardados exitosamente.' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    await modelo.guardarComponentesCombo(Number(req.params.id), componentes);
+    res.json({ message: 'Componentes guardados exitosamente.' });
+  } catch (e) { responderError(res, e, 'Error al guardar los componentes'); }
 };

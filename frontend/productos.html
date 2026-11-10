@@ -84,6 +84,17 @@
               </select>
             </div>
 
+            <!--Ordenamiento por minorista o mayorista-->
+            <div class="filter-item">
+              <label for="filtro-lista">Lista</label>
+              <select id="filtro-lista" class="filter-select">
+                <option value="ALL">Todas las listas</option>
+                <option value="MINORISTA">Solo minorista</option>
+                <option value="MAYORISTA">Solo mayorista</option>
+                <option value="AMBAS">En ambas</option>
+              </select>
+            </div>
+
             <button type="button" id="btn-limpiar-filtros" class="btn-clean-filters">
               Limpiar
             </button>
@@ -217,6 +228,25 @@
               <option value="0.00">0.00 % (Exento)</option>
               <option value="27.00">27.00 %</option>
             </select>
+          </div>
+
+          <div class="form-group">
+            <label for="create-codigo-interno">Código interno (opcional)</label>
+            <input type="text" id="create-codigo-interno" name="codigo_interno"
+                  inputmode="numeric" maxlength="6" pattern="[0-9]{1,6}" placeholder="Ej: 015" autocomplete="off">
+            <small class="helper-text">1 a 6 dígitos. Para cargar rápido: 015 o 015*16.</small>
+          </div>
+
+          <div class="form-group">
+            <label>Se vende en</label>
+            <div class="checkbox-wrapper">
+              <input type="checkbox" id="create-minorista-chk" name="vende_minorista" checked>
+              <label for="create-minorista-chk" style="cursor:pointer;">Minorista (kioscos)</label>
+            </div>
+            <div class="checkbox-wrapper">
+              <input type="checkbox" id="create-mayorista-chk" name="vende_mayorista">
+              <label for="create-mayorista-chk" style="cursor:pointer;">Mayorista (distribuidora)</label>
+            </div>
           </div>
 
           <div class="form-group full-width checkbox-wrapper">
