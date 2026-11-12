@@ -44,6 +44,11 @@ function renderizarAlertasStock(alertas) {
   if (!tbody) return;
   tbody.innerHTML = '';
 
+    if (alertas === null) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3" style="color:var(--color-critical);">No se pudieron cargar las alertas de stock.</td></tr>`;
+    return;
+  }
+
   if (!alertas || alertas.length === 0) {
     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-muted">✅ Todo el inventario se encuentra dentro de los niveles normales.</td></tr>`;
     return;
@@ -74,6 +79,11 @@ function renderizarCajasVivas(cajas) {
   const tbody = document.getElementById('tbody-cajas-vivas');
   if (!tbody) return;
   tbody.innerHTML = '';
+
+    if (cajas === null) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3" style="color:var(--color-critical);">No se pudieron cargar las cajas y turnos.</td></tr>`;
+    return;
+  }
 
   if (!cajas || cajas.length === 0) {
     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-muted">No hay cajas activas ni turnos pendientes en este momento.</td></tr>`;

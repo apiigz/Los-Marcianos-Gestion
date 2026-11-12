@@ -486,3 +486,51 @@ body {
 .permiso-item { display: flex; gap: .6rem; align-items: flex-start; padding: .35rem 0; cursor: pointer; }
 .permiso-item input { margin-top: .2rem; accent-color: var(--color-green); }
 .permiso-item small { display: block; color: var(--text-subtle); font-family: ui-monospace, monospace; font-size: .7rem; }
+
+/* ===== Modal de permisos: bloque de alto fijo con scroll ===== */
+#modal-permisos .modal-dialog {
+  max-width: 760px !important;
+  width: 95% !important;
+}
+
+#modal-permisos .permisos-toolbar {
+  padding: .6rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#modal-permisos #permisos-body {
+  display: block !important;
+  height: 55vh !important;       /* alto fijo: el resto se desplaza */
+  max-height: 55vh !important;
+  overflow-y: auto !important;
+  padding: 1rem 1.5rem !important;
+}
+
+#modal-permisos .permisos-grupo {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: .35rem .75rem .6rem;
+  margin: 0 0 .75rem 0;
+}
+#modal-permisos .permisos-grupo legend {
+  padding: 0 .4rem;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-purple);
+  cursor: pointer;
+}
+#modal-permisos .permiso-item {
+  display: flex;
+  gap: .5rem;
+  align-items: flex-start;
+  padding: .25rem 0;
+  font-size: .8rem;
+  cursor: pointer;
+}
+#modal-permisos .permiso-item small {
+  display: block;
+  color: var(--text-subtle);
+  font-family: ui-monospace, monospace;
+  font-size: .65rem;
+}

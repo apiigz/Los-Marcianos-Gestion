@@ -53,18 +53,15 @@ export async function obtenerEstadoCajasTurnos() {
       s.nombre AS sucursal_nombre,
       COALESCE(
         (
-          (SELECT STRING_AGG(DISTINCT u.nombre || ' ' || u.apellido, ' / ')
-            FROM turno_cajero tj JOIN usuario u ON u.id = tj.usuario_id
-            WHERE tj.turno_caja_id = tc.id AND tj.egreso IS NULL),
-          (SELECT u.nombre || ' ' || u.apellido FROM usuario u WHERE u.id = tc.usuario_apertura_id),
-          'Sin cajeros asignados'
-        ) AS cajero_nombre
-      ),
+          SELECT STRING_AGG(DISTINCT u.nombre || ' ' || u.apellido, ' / ')
+          FROM turno_cajero tj
+          JOIN usuario u ON u.id = tj.usuario_id
+          WHERE tj.turno_caja_id = tc.id AND tj.egreso IS NULL
+        ),
         (
-          SELECT STRING_AGG(DISTINCT (u.nombre || ' ' || u.apellido), ' / ')
-          FROM venta v
-          JOIN usuario u ON v.usuario_id = u.id
-          WHERE v.turno_caja_id = tc.id
+          SELECT u.nombre || ' ' || u.apellido
+          FROM usuario u
+          WHERE u.id = tc.usuario_apertura_id
         ),
         'Sin cajeros asignados'
       ) AS cajero_nombre

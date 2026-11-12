@@ -99,18 +99,21 @@
 
   <!-- Modal para Permisos del Rol -->
   <div id="modal-permisos" class="modal-overlay" hidden>
-    <div class="modal-dialog modal-dialog-lg">
-      <div class="modal-header">
-        <h2 id="permisos-titulo">Permisos del rol</h2>
-        <button type="button" class="btn-modal-close" id="btn-permisos-close">&times;</button>
-      </div>
-      <div class="modal-body" id="permisos-body"></div>
-      <div class="modal-footer">
-        <button type="button" class="btn-cancel" id="btn-permisos-cancel">Cancelar</button>
-        <button type="submit" class="btn-confirm" id="btn-permisos-save">Guardar permisos</button>
-      </div>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h2 id="permisos-titulo">Permisos del rol</h2>
+      <button type="button" class="btn-modal-close" id="btn-permisos-close">&times;</button>
+    </div>
+    <div class="permisos-toolbar">
+      <input type="text" id="permisos-buscar" class="table-input" placeholder="Buscar permiso..." autocomplete="off">
+    </div>
+    <div class="modal-body" id="permisos-body"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" id="btn-permisos-cancel">Cancelar</button>
+      <button type="button" class="btn-confirm" id="btn-permisos-save">Guardar permisos</button>
     </div>
   </div>
+</div>
 
   <!-- Modal de Confirmación Genérico -->
   <div id="modal-confirm" class="modal-overlay" hidden>

@@ -145,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     permisosTitulo.textContent = `Permisos de ${rolEditando.nombre}`;
     permisosBody.innerHTML = '<p class="helper-text">Cargando...</p>';
     modalPermisos.hidden = false;
+    document.getElementById('permisos-buscar').value = '';
 
     try {
       if (!catalogo.length) catalogo = await getJson('/api/v1/roles/catalogo-permisos');
@@ -163,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, {});
 
     permisosBody.innerHTML = Object.entries(grupos).map(([mod, lista]) => `
-      <fieldset class="permisos-grupo" style="margin-bottom:.75rem;">
+      <fieldset class="permisos-grupo">
         <legend>
           <label><input type="checkbox" class="chk-modulo"> ${escapeHtml(NOMBRE_MODULO[mod] || mod)}</label>
         </legend>
@@ -186,13 +187,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Delegación: "marcar todo el módulo" + estado intermedio
-  permisosBody.addEventListener('change', (e) => {
+   permisosBody.addEventListener('change', (e) => {
     const fs = e.target.closest('fieldset');
     if (!fs) return;
     if (e.target.classList.contains('chk-modulo')) {
-      fs.querySelectorAll('.chk-permiso').forEach(i => (i.checked = e.target.checked));
+      fs.querySelectorAll('.chk-permiso').forEach(i => {
+        if (i.closest('.permiso-item').style.display !== 'none') i.checked = e.target.checked;
+      });
     }
     actualizarEstadoModulo(fs);
+  });
+
+  document.getElementById('permisos-buscar').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    permisosBody.querySelectorAll('fieldset').forEach(fs => {
+      let visibles = 0;
+      fs.querySelectorAll('.permiso-item').forEach(it => {
+        const ok = !q || it.textContent.toLowerCase().includes(q);
+        it.style.display = ok ? '' : 'none';
+        if (ok) visibles++;
+      });
+      fs.style.display = visibles ? '' : 'none';
+    });
   });
 
   function pedirGuardadoPermisos() {

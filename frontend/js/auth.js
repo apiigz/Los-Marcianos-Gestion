@@ -1,5 +1,6 @@
 // frontend/js/auth.js
 const MENU_ADMIN = [
+  ['admin.html',       'Inicio',              'admin.acceder'],
   ['usuarios.html',    'Usuarios',            'usuarios.gestionar'],
   ['roles.html',       'Roles',               'roles.gestionar|usuarios.gestionar'],
   ['sucursales.html',  'Sucursales',          'sucursales.gestionar'],
